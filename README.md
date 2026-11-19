@@ -6,6 +6,8 @@
 
 **An open-source mail, calendar, contacts and tasks program, written from scratch in Rust.**
 
+[한국어 README](README.ko.md) · [한국어 작업 지침](AGENTS.ko.md) · [한국어 기여 안내](CONTRIBUTING.ko.md)
+
 MailCraft has been developed here since 12 October 2026; this repository and [mailcraft.work](https://mailcraft.work) are the project's only official homes.
 
 <!-- Quality and security -->
