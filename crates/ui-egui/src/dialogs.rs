@@ -504,6 +504,11 @@ pub fn confirmation(app: &MailApp, id: &str, params: &Value) -> Option<Question>
             let (title, text, action) = crate::attachment_open::question(app, params)?;
             question(&title, text, &action)
         }
+        "mail.delete" | "mail.deletePermanently"
+            if app.session.reference_folder().is_some() || (id == "mail.deletePermanently" && app.session.all_mail_accounts().is_some()) =>
+        {
+            None
+        }
         "mail.delete" | "mail.deletePermanently" => {
             // What the selection stands for: a conversation's row, every message of it the list
             // shows (#503).
@@ -522,10 +527,12 @@ pub fn confirmation(app: &MailApp, id: &str, params: &Value) -> Option<Question>
                 Ok(None) => selected(),
                 Err(_) => return None,
             };
-            // An ordinary delete only asks when it is for good: the message is in Deleted Items already.
+            // All Mail refuses to delete for good, but still asks before moving a whole conversation.
+            let aggregate = app.session.all_mail_accounts().is_some();
             let for_good = |m: &mailcraft_model::Message| {
-                id == "mail.deletePermanently"
-                    || mb.folder_of_kind(m.account, mailcraft_model::FolderKind::Deleted).is_none_or(|bin| mb.subtree(bin).contains(&m.folder))
+                !aggregate
+                    && (id == "mail.deletePermanently"
+                        || mb.folder_of_kind(m.account, mailcraft_model::FolderKind::Deleted).is_none_or(|bin| mb.subtree(bin).contains(&m.folder)))
             };
             let going: Vec<&mailcraft_model::Message> = ids.iter().filter_map(|id| mb.message(*id)).filter(|m| for_good(m)).collect();
             if going.is_empty() {

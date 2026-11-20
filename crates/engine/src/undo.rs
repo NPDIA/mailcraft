@@ -31,7 +31,9 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 use mailcraft_model::sync::{DraftState, MovingOut, ServerMessage, same_category};
-use mailcraft_model::{AccountKind, Calendar, Folder, FolderKind, Id, Mailbox, Message, Pending, Queued, RETURNED_LISTINGS, category_key};
+use mailcraft_model::{
+    AccountKind, Calendar, Folder, FolderKind, Id, Mailbox, Message, Pending, Queued, RETURNED_LISTINGS, ReferenceFolder, category_key,
+};
 
 /// What a change did to the mail of the Microsoft accounts: the messages and folders it changed,
 /// as they were right after it (`None`: it took them away). Nothing for a mailbox without one.
@@ -42,6 +44,7 @@ use mailcraft_model::{AccountKind, Calendar, Folder, FolderKind, Id, Mailbox, Me
 pub(crate) struct Touched {
     messages: BTreeMap<Id, Option<Arc<Message>>>,
     folders: BTreeMap<Id, Option<Folder>>,
+    reference_folders: BTreeMap<Id, Option<Arc<ReferenceFolder>>>,
     changed_messages: BTreeSet<Id>,
     /// The messages whose reminder the change itself changed (#948).
     follow_up_changed: BTreeSet<Id>,
@@ -268,6 +271,15 @@ pub(crate) fn touched(before: &Mailbox, after: &Mailbox) -> Touched {
             t.folders.insert(a.id, Some(a.clone()));
         }
     }
+    for (id, old) in &before.reference_folders {
+        let new = after.reference_folders.get(id);
+        if new != Some(old) {
+            t.reference_folders.insert(*id, new.cloned());
+        }
+    }
+    for (id, new) in after.reference_folders.iter().filter(|(id, _)| !before.reference_folders.contains_key(id)) {
+        t.reference_folders.insert(*id, Some(new.clone()));
+    }
     if before.pending != after.pending {
         let (was, is): (HashSet<String>, HashSet<String>) = (before.pending.iter().map(key).collect(), after.pending.iter().map(key).collect());
         t.pending_added = is.difference(&was).cloned().collect();
@@ -416,6 +428,7 @@ impl Said {
 pub(crate) fn keep_in_step(mut out: Mailbox, touched: &Touched, now: &Mailbox, lang: mailcraft_i18n::Lang) -> (Mailbox, Vec<String>) {
     // Ids are never given out twice, whatever the undo brings back.
     out.ids_after(now);
+    restore_reference_folders(&mut out, touched, now);
     // The certificates Digital signatures brought are what was learnt, not what the owner did
     // (#30): an undo leaves them, and puts back only the keys the change imported, removed or
     // changed, never taking a revocation away or marking a key Verified.
@@ -459,6 +472,39 @@ pub(crate) fn keep_in_step(mut out: Mailbox, touched: &Touched, now: &Mailbox, l
     server_lists(&mut out, touched, now, &g, &mut said);
     out.favorites_from_server = now.favorites_from_server.clone();
     (out, said.lines(lang))
+}
+
+/// Automatic rules can add links between a command and its undo. Restore only what the command
+/// changed, keeping other links and folders as they are.
+fn restore_reference_folders(out: &mut Mailbox, touched: &Touched, now: &Mailbox) {
+    let before = std::mem::replace(&mut out.reference_folders, now.reference_folders.clone());
+    for (&id, after) in &touched.reference_folders {
+        let current = now.reference_folders.get(&id);
+        let old = before.get(&id);
+        if current == after.as_ref() {
+            if let Some(old) = old {
+                out.reference_folders.insert(id, old.clone());
+            } else {
+                out.reference_folders.remove(&id);
+            }
+            continue;
+        }
+        let (Some(old), Some(after), Some(current)) = (old, after, out.reference_folders.get_mut(&id)) else { continue };
+        let current = Arc::make_mut(current);
+        for (message, link) in &old.links {
+            if after.links.get(message) != Some(link) && after.links.get(message) == current.links.get(message) {
+                current.links.insert(*message, link.clone());
+            }
+        }
+        for (message, link) in after.links.iter().filter(|(message, _)| !old.links.contains_key(message)) {
+            if current.links.get(message) == Some(link) {
+                current.links.remove(message);
+            }
+        }
+        if current.name == after.name {
+            current.name.clone_from(&old.name);
+        }
+    }
 }
 
 /// Subscribed calendars and their events are the web's and the refresh's, never the change's to

@@ -483,6 +483,7 @@ fn home_mail(app: &MailApp) -> Tab {
     // Junk ▾: Block Sender, Never Block…, Not Junk and Junk E-mail Options (#504).
     let junk = Item::small_menu("junk", "junk", "Junk", "Junk", Menu::Junk);
     let pinned = app.session.focused_message().is_some_and(|m| m.pinned);
+    let delete = if app.session.reference_folder().is_some() { tl_later!("Remove\nReference") } else { "Delete" };
     Tab::of(vec![
         g(
             "New",
@@ -494,7 +495,7 @@ fn home_mail(app: &MailApp) -> Tab {
         g(
             "Delete",
             vec![
-                Item::big("delete", "Delete", "mail.delete", no()).at(1, 1).plain(),
+                Item::big("delete", delete, "mail.delete", no()).at(1, 1).plain(),
                 Item::big("archive", "Archive", "mail.archive", no()).at(1, 2).plain(),
                 junk.under("mail.delete"),
                 Item::small("deletePermanently", "Delete Permanently", "Delete Permanently", "mail.deletePermanently", no()).under("mail.delete"),

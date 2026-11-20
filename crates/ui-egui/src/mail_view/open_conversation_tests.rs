@@ -136,6 +136,26 @@ fn delete_on_a_closed_conversation_asks_first_then_deletes_it_in_this_folder() {
 }
 
 #[test]
+fn delete_in_all_mail_asks_before_moving_a_conversation_from_multiple_folders() {
+    let (mut w, newer, older, reply) = release_checklist();
+    w.state_mut().execute("folder.allMail", json!({})).unwrap();
+    w.run_steps(3);
+    let row = w.state_mut().session.rows().iter().find(|r| r.members.contains(&older)).cloned().unwrap();
+    assert_eq!(row.members.len(), 3);
+    assert!([newer, older, reply].iter().all(|id| row.members.contains(id)));
+
+    click(&mut w, "message", row.id);
+    testing::key(&mut w, Key::Delete);
+    w.run_steps(3);
+    let Some(crate::dialogs::Dialog::Confirm { ask, .. }) = &w.state().dialog else { panic!("no question") };
+    assert_eq!(ask.text, "This deletes the 3 messages of this conversation that are listed here. They go to Deleted Items.");
+    assert_eq!([kind(&w, newer), kind(&w, older), kind(&w, reply)], [Some(FolderKind::Inbox), Some(FolderKind::Inbox), Some(FolderKind::Sent)]);
+
+    click(&mut w, "questionAction", 0);
+    assert_eq!([kind(&w, newer), kind(&w, older), kind(&w, reply)], [Some(FolderKind::Deleted); 3]);
+}
+
+#[test]
 fn dont_ask_again_turns_the_question_off_for_the_account() {
     let (mut w, newer, older, _) = release_checklist();
     let account = w.state().session.mailbox.accounts[0].id;

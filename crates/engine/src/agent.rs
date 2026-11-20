@@ -598,6 +598,15 @@ const SETTINGS: &[&str] = &[
 ];
 
 const NEVER: &[&str] = &[
+    // Fork reference-folder workflows are available in the desktop window.
+    "folder.allMail",
+    "folder.referenceNew",
+    "folder.referenceOpen",
+    "folder.referenceDelete",
+    "folder.referencePrune",
+    "mail.referenceCopy",
+    "mail.referenceRemove",
+    "mail.referenceTrash",
     // The owner's Dismiss and Snooze of a follow-up reminder (#948): an agent never does either
     // for the owner.
     "mail.dismissReminder",

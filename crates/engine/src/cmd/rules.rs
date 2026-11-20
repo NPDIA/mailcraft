@@ -20,7 +20,7 @@ use mailcraft_model::MAX_RULES;
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("rules.add", "Create Rule", "Home › Move", add).params(
-            r#"{"name": string, "conditions": [{"type": "fromContains"|"toContains"|"subjectContains"|"bodyContains", "value": string} | {"type": "hasAttachment"} | {"type": "importance", "value": "high"|"normal"|"low"}], "actions": [{"type": "moveTo", "value": folder id} | {"type": "categorize", "value": string} | {"type": "flag"} | {"type": "markRead"} | {"type": "setImportance", "value": string} | {"type": "delete"}], "stop"?: bool, "account"?: number (whose arriving mail it is for; without it, every account's, and kept on this computer), "server"?: bool (false keeps it on this computer; true refuses a rule the server can't keep; default: on the server when it can)} — on a Microsoft account the rule is kept on its server when the server can do all of it (it then runs there, whether MailCraft is open or not; the sender's and recipients' words are looked for in their addresses alone, as the server does); answers {"id", "keep": "server"|"here"}"#,
+            r#"{"name": string, "conditions": [{"type": "fromContains"|"toContains"|"subjectContains"|"bodyContains", "value": string} | {"type": "hasAttachment"} | {"type": "importance", "value": "high"|"normal"|"low"}], "actions": [{"type": "moveTo", "value": folder id} | {"type": "referenceTo", "value": local reference folder id} | {"type": "categorize", "value": string} | {"type": "flag"} | {"type": "markRead"} | {"type": "setImportance", "value": string} | {"type": "delete"}], "stop"?: bool, "account"?: number (whose arriving mail it is for; without it, every account's, and kept on this computer), "server"?: bool (false keeps it on this computer; true refuses a rule the server can't keep; default: on the server when it can)} — on a Microsoft account the rule is kept on its server when the server can do all of it (it then runs there, whether MailCraft is open or not; the sender's and recipients' words are looked for in their addresses alone, as the server does); answers {"id", "keep": "server"|"here"}"#,
         ),
         CommandSpec::new("rules.remove", "Delete Rule", "Home › Move", remove).params(r#"{"id": number} — a rule its server has is deleted there too"#),
         CommandSpec::new("rules.enable", "Enable Rule", "Home › Move", enable).params(r#"{"id": number, "value"?: bool (default: toggle)}"#),
@@ -51,6 +51,7 @@ pub enum NotOnServer {
     Flag,
     /// The folder the rule moves mail to is on this computer.
     FolderHere,
+    ReferenceHere,
     /// The folder is another account's.
     FolderElsewhere,
     /// The folder isn't on the account's server yet, or is gone.
@@ -73,6 +74,7 @@ impl NotOnServer {
             NotOnServer::NoServer => "MailCraft can't keep this account's rules on its server",
             NotOnServer::Flag => "the server can't flag mail",
             NotOnServer::FolderHere => "the folder it moves mail to is on this computer",
+            NotOnServer::ReferenceHere => "reference folders are kept on this computer",
             NotOnServer::FolderElsewhere => "the folder it moves mail to is in another account",
             NotOnServer::FolderNotThere => "the folder it moves mail to isn't on the server",
             NotOnServer::TwoMoves => "it moves mail to more than one folder",
@@ -102,6 +104,7 @@ pub fn server_cannot(mb: &Mailbox, rule: &Rule, account: Id) -> Option<NotOnServ
     for action in &rule.actions {
         match action {
             Action::Flag => return Some(NotOnServer::Flag),
+            Action::ReferenceTo(_) => return Some(NotOnServer::ReferenceHere),
             Action::MoveTo(folder) => {
                 moves += 1;
                 let Some(f) = mb.folder(*folder) else { return Some(NotOnServer::FolderNotThere) };
@@ -178,6 +181,16 @@ fn action(s: &Session, v: &Value) -> Result<Action, CmdError> {
             let folder = p::req_id(v, "value")?;
             refuse_send_queue(s, folder)?;
             Action::MoveTo(s.mailbox.folder(folder).map(|f| f.id).ok_or_else(|| failed!("no folder with id {id}", id = folder))?)
+        }
+        "referenceTo" => {
+            if s.agent.is_some() {
+                return Err(fail("reference folders are kept on this computer"));
+            }
+            let folder = p::req_id(v, "value")?;
+            if !s.mailbox.reference_folders.contains_key(&folder) {
+                return Err(fail("no such reference folder"));
+            }
+            Action::ReferenceTo(folder)
         }
         "categorize" => Action::Categorize(clean_name(p::str(v, "value").unwrap_or("")).ok_or_else(|| bad("categorize needs a category name"))?),
         "flag" => Action::Flag,

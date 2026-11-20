@@ -487,7 +487,8 @@ fn header(app: &mut MailApp, ui: &mut Ui, m: &Arc<Message>, place: Place, pictur
                 if place == Place::Pane {
                     for (icon, tip, id) in ACTIONS.iter().rev() {
                         let sc = crate::widgets::shortcut_text(app, id);
-                        if crate::widgets::icon_button(ui, icon, &format!("{} ({sc})", tl!(tip)), 17.0, true).clicked() {
+                        let tip = if *id == "mail.delete" && app.session.reference_folder().is_some() { tl!("Remove Reference") } else { tl!(tip) };
+                        if crate::widgets::icon_button(ui, icon, &format!("{tip} ({sc})"), 17.0, true).clicked() {
                             let _ = app.run(id, json!({}));
                         }
                     }

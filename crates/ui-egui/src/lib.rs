@@ -4856,6 +4856,12 @@ impl MailApp {
             self.session.mailbox.folder(self.session.view.folder).and_then(|f| self.session.mailbox.account(f.account)).map(|a| a.name.clone());
         match self.session.view.module {
             Module::Mail => {
+                if let Some(reference) = self.session.reference_folder() {
+                    return reference.name.clone();
+                }
+                if self.session.all_mail_accounts().is_some() {
+                    return tl!("All Mail").to_string();
+                }
                 let folder = self.session.mailbox.folder(self.session.view.folder).map_or(tl!("Mail"), crate::nav::folder_name);
                 match account.filter(|a| !a.is_empty()) {
                     Some(a) => i18n::fmt(tl!("{folder} - {mailbox}"), &[("folder", folder), ("mailbox", &a)]),

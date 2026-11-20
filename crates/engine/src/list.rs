@@ -186,13 +186,25 @@ pub fn rows(s: &Session) -> Vec<Row> {
 /// subfolders (#493).
 pub fn in_view(s: &Session) -> impl Fn(&Message) -> bool + '_ {
     let (everywhere, folders) = view_folders(s);
-    move |m: &Message| folders.contains(&m.folder) != everywhere
+    let reference = s.reference_folder();
+    move |m: &Message| match reference {
+        Some(reference) => reference.links.get(&m.id).is_some_and(|link| link.matches(&s.mailbox, m)),
+        None => folders.contains(&m.folder) != everywhere,
+    }
 }
 
 /// The folders the list looks in ([`in_view`]), or, for a search of every mailbox (`true`),
 /// the folders it leaves out.
 fn view_folders(s: &Session) -> (bool, HashSet<Id>) {
     let mb = &s.mailbox;
+    if s.reference_folder().is_some() {
+        return (false, HashSet::new());
+    }
+    if let Some(accounts) = s.all_mail_accounts() {
+        let wanted: HashSet<Id> = accounts.iter().copied().collect();
+        let included = mb.folders.iter().filter(|folder| wanted.is_empty() || wanted.contains(&folder.account)).map(|folder| folder.id).collect();
+        return (false, included);
+    }
     let folder = s.view.folder;
     let scope = if Query::parse(&s.view.search).is_empty() { Scope::Folder } else { s.view.scope };
     // Deleted and junk mail stays out of a search of a whole mailbox (`account`) or of all.
@@ -224,6 +236,18 @@ fn view_folders(s: &Session) -> (bool, HashSet<Id>) {
 /// every message that is in view.
 fn looked_at<'a>(s: &'a Session, everywhere: bool, folders: &HashSet<Id>) -> Vec<&'a Message> {
     let mb = &s.mailbox;
+    if let Some(reference) = s.reference_folder() {
+        let sources: HashMap<_, _> = mb.folders.iter().map(|folder| (folder.id, folder)).collect();
+        return reference
+            .links
+            .iter()
+            .filter_map(|(id, link)| {
+                let message = mb.message(*id)?;
+                let folder = sources.get(&message.folder)?;
+                link.matches_in(folder, message).then_some(message)
+            })
+            .collect();
+    }
     match s.fresh_counts() {
         Some(counts) if !everywhere => {
             folders.iter().flat_map(|f| mb.messages.get_sorted(counts.ids(*f))).map(|m| m.as_ref()).filter(|m| folders.contains(&m.folder)).collect()

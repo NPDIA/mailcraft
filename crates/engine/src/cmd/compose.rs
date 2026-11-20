@@ -33,7 +33,13 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("mail.replyAll", "Reply All", "Home › Respond", reply_all).pure().key("Mod+Shift+R").params(SOURCE).selection(needs_message),
         CommandSpec::new("mail.replyAndDelete", "Reply and Delete", "Home › Respond", reply_and_delete)
             .params(r#"{"id"?: number} (default: the selected message) — Reply, and the original goes to its account's Deleted Items; one there already stays (never deleted for good). A message being written stays open beside it, as it is, and its id is answered as `compose` (#286). An `id` that is null or isn't an id, or `ids` naming other than one message, is refused"#)
-            .selection(super::needs_message),
+            .selection(|s| {
+                if s.reference_folder().is_some() {
+                    Some("use Move Original to Deleted Items in a reference folder")
+                } else {
+                    super::needs_message(s)
+                }
+            }),
         CommandSpec::new("mail.forward", "Forward", "Home › Respond", forward).pure().key("Mod+F").params(FORWARD).selection(needs_forwardable),
         CommandSpec::new("mail.forwardAsAttachment", "Forward as Attachment", "Home › Respond", forward_as_attachment)
             .pure()
@@ -569,6 +575,9 @@ fn reply(s: &mut Session, v: &Value) -> CmdResult {
 /// still answers it, and marks it answered once sent). One in Deleted Items already, or of an
 /// account without one, stays where it is: this never deletes for good.
 fn reply_and_delete(s: &mut Session, v: &Value) -> CmdResult {
+    if s.reference_folder().is_some() {
+        return Err(fail("use Move Original to Deleted Items in a reference folder"));
+    }
     let id = p::message_strict(v)?.or(s.sel.focus()).ok_or_else(|| fail("select a message first"))?;
     // Mail a JMAP account's server has goes to Deleted Items only when the server has that folder
     // too: said before the reply is begun, not after.

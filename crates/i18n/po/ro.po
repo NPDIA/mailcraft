@@ -803,6 +803,11 @@ msgstr "Nume cont"
 msgid "Accounts"
 msgstr "Conturi"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Accounts shown in All Mail"
+msgstr ""
+
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/meeting.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/compose.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/people_merge.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -1196,6 +1201,11 @@ msgstr "Toate categoriile"
 #, fuzzy
 msgid "All Categories…"
 msgstr "Toate categoriile…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "All Mail"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/mail_view.rs
@@ -3173,6 +3183,11 @@ msgstr "Se verifică: raportul vine imediat…"
 msgid "Checking…"
 msgstr "Se verifică…"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Choose Accounts"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/signature.rs
 #, fuzzy
@@ -3685,6 +3700,11 @@ msgstr "Copiere link"
 msgid "Copy Link Address"
 msgstr "Copiere adresă link"
 
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Copy Reference to Folder"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
@@ -3726,6 +3746,11 @@ msgstr "Copiere mesaj pentru administrator"
 #, fuzzy
 msgid "Copy problems"
 msgstr "Copiere probleme"
+
+#. interface, name
+#: crates/ui-egui/src/forms.rs
+msgid "Copy reference to folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/move_items.rs
@@ -3984,6 +4009,11 @@ msgstr "Țară"
 #, fuzzy
 msgid "Courier New"
 msgstr "Courier New"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Create"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
@@ -4249,7 +4279,7 @@ msgid "Delete Conversation"
 msgstr "Ștergere conversație"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "Ștergere dosar"
@@ -4277,6 +4307,11 @@ msgstr "Ștergere definitivă"
 #, fuzzy
 msgid "Delete Recurring Item"
 msgstr "Ștergere element recurent"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Delete Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/rules.rs
@@ -5735,7 +5770,7 @@ msgid "Fold the calendars of this group away"
 msgstr "Restrângeți calendarele acestui grup"
 
 #. interface, name, ribbon location
-#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
+#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
 #, fuzzy
 msgid "Folder"
 msgstr "Dosar"
@@ -5785,7 +5820,7 @@ msgid "Folder Size…"
 msgstr "Dimensiune dosar…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Nume dosar"
@@ -9329,6 +9364,16 @@ msgid "Move Items"
 msgstr "Mutare elemente"
 
 #. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original to Deleted Items"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Move Recurring Item"
@@ -9749,6 +9794,11 @@ msgstr "Cutie poștală nouă"
 #, fuzzy
 msgid "New Meeting"
 msgstr "Întâlnire nouă"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "New Reference Folder"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/tasks.rs crates/ui-egui/src/forms.rs
@@ -11211,6 +11261,11 @@ msgid "Open Recurring Item"
 msgstr "Deschidere element recurent"
 
 #. command label
+#: crates/engine/src/cmd/reference_folder.rs
+msgid "Open Reference Folder"
+msgstr ""
+
+#. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Open Replies and Forwards in a New Window"
@@ -11468,11 +11523,21 @@ msgstr "Organizator: propriul calendar"
 msgid "Organizer: {name}"
 msgstr "Organizator: {name}"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original folder: {folder}"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposerScreen.kt
 #, fuzzy
 msgid "Original message"
 msgstr "Mesaj original"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original messages will stay where they are."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
@@ -12560,6 +12625,13 @@ msgstr ""
 "Eliminare\n"
 "atașament"
 
+#. interface
+#: crates/ui-egui/src/ribbon.rs
+msgid ""
+"Remove\n"
+"Reference"
+msgstr ""
+
 #. command label, interface
 #: crates/engine/src/cmd/account.rs crates/ui-egui/src/dialogs.rs
 #, fuzzy
@@ -12643,6 +12715,11 @@ msgid "Remove Recurrence"
 msgstr "Eliminare recurență"
 
 #. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs crates/ui-egui/src/reading.rs
+msgid "Remove Reference"
+msgstr ""
+
+#. command label, interface
 #: crates/engine/src/cmd/followup.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Remove Reminder"
@@ -12659,6 +12736,11 @@ msgstr "Eliminare calendar partajat"
 #, fuzzy
 msgid "Remove Shared Mailbox"
 msgstr "Eliminare cutie poștală partajată"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Remove Unavailable References"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -14536,6 +14618,11 @@ msgid ""
 msgstr ""
 "Afișare\n"
 "instruire"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Show All Accounts"
+msgstr ""
 
 #. command label, interface, ribbon
 #: crates/engine/src/cmd/calendar.rs crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/ribbon.rs
@@ -20731,6 +20818,16 @@ msgid "a picture in a message is at most {mb} MB"
 msgstr "o imagine dintr-un mesaj are cel mult {mb} MB"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder already has that name"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder needs a name"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/auto_replies.rs
 #, fuzzy
 msgid "a reply may be {most} characters long at most"
@@ -20996,6 +21093,16 @@ msgstr "problemă de conexiune: {reason}"
 #, fuzzy
 msgid "contact"
 msgstr "contact"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to a folder that is gone"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to {folder}"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/net/src/lib.rs
@@ -21653,6 +21760,11 @@ msgid "no such paragraph"
 msgstr "paragraful nu există"
 
 #. what a command says
+#: crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs
+msgid "no such reference folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs crates/engine/src/cmd/tasks/status.rs
 #, fuzzy
 msgid "no task with id {id}"
@@ -21819,6 +21931,11 @@ msgstr ""
 msgid "only your own calendars can be put in a message"
 msgstr "doar propriile calendare pot fi puse într-un mesaj"
 
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/mail.rs
+msgid "open the source folder to delete a message permanently"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 #, fuzzy
@@ -21866,6 +21983,11 @@ msgstr "imaginile de pe web nu se descarcă: salvați imaginea și adăugați-o 
 #, fuzzy
 msgid "readOnly"
 msgstr "readOnly"
+
+#. name, what a command says
+#: crates/engine/src/cmd/rules.rs
+msgid "reference folders are kept on this computer"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
@@ -22492,6 +22614,16 @@ msgid "the network couldn't get there"
 msgstr "rețeaua nu a putut ajunge acolo"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is already in Deleted Items"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is no longer here"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "the parent folder belongs to another account"
@@ -22526,6 +22658,11 @@ msgstr "platforma a refuzat sau a eșuat"
 #, fuzzy
 msgid "the proposed end is not after the proposed start"
 msgstr "sfârșitul propus nu este după începutul propus"
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the reference folder is full"
+msgstr ""
 
 #. what a command says
 #: crates/model/src/mailbox_followup.rs
@@ -22918,6 +23055,11 @@ msgid "the signature was edited as text: its copy is what goes out"
 msgstr "semnătura a fost editată ca text: copia ei este cea care pleacă"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the source account has no Deleted Items folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs
 #, fuzzy
 msgid "the task is gone"
@@ -23005,6 +23147,11 @@ msgstr "sunt prea multe calendare pentru a crea unul pentru acest fișier"
 #, fuzzy
 msgid "there are too many categories"
 msgstr "sunt prea multe categorii"
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "there are too many reference folders"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs
@@ -23264,6 +23411,11 @@ msgstr "această serie are prea multe zile anulate"
 msgid "this series has too many changed days"
 msgstr "această serie are prea multe zile modificate"
 
+#. why a command can't run
+#: crates/engine/src/cmd/search_server.rs
+msgid "this view searches the mail already on this computer"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
@@ -23302,6 +23454,11 @@ msgstr "scrieți o adresă, de exemplu cineva@example.org, sau un domeniu, de ex
 #, fuzzy
 msgid "unexpected server response: {reason}"
 msgstr "răspuns neașteptat de la server: {reason}"
+
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs
+msgid "use Move Original to Deleted Items in a reference folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/security.rs

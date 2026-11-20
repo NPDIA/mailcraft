@@ -667,6 +667,11 @@ msgstr ""
 msgid "Accounts"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Accounts shown in All Mail"
+msgstr ""
+
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/meeting.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/compose.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/people_merge.rs crates/ui-egui/src/ribbon.rs
 msgid "Actions"
@@ -991,6 +996,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/ribbon.rs
 msgid "All Categories…"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "All Mail"
 msgstr ""
 
 #. interface
@@ -2632,6 +2642,11 @@ msgstr ""
 msgid "Checking…"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Choose Accounts"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/signature.rs
 msgid "Choose Default Signature"
@@ -3056,6 +3071,11 @@ msgstr ""
 msgid "Copy Link Address"
 msgstr ""
 
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Copy Reference to Folder"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 msgid "Copy Selected Text"
@@ -3089,6 +3109,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/sync_panel.rs
 msgid "Copy problems"
+msgstr ""
+
+#. interface, name
+#: crates/ui-egui/src/forms.rs
+msgid "Copy reference to folder"
 msgstr ""
 
 #. interface
@@ -3304,6 +3329,11 @@ msgstr ""
 #. name
 #: crates/model/src/rich.rs
 msgid "Courier New"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Create"
 msgstr ""
 
 #. interface
@@ -3523,7 +3553,7 @@ msgid "Delete Conversation"
 msgstr ""
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Folder"
 msgstr ""
 
@@ -3545,6 +3575,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "Delete Recurring Item"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Delete Reference Folder"
 msgstr ""
 
 #. command label
@@ -4748,7 +4783,7 @@ msgid "Fold the calendars of this group away"
 msgstr ""
 
 #. interface, name, ribbon location
-#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
+#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
 msgid "Folder"
 msgstr ""
 
@@ -4787,7 +4822,7 @@ msgid "Folder Size…"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Folder name"
 msgstr ""
 
@@ -7714,6 +7749,16 @@ msgid "Move Items"
 msgstr ""
 
 #. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original to Deleted Items"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 msgid "Move Recurring Item"
 msgstr ""
@@ -8052,6 +8097,11 @@ msgstr ""
 #. command label, interface
 #: crates/engine/src/cmd/calendar.rs crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs
 msgid "New Meeting"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "New Reference Folder"
 msgstr ""
 
 #. command label, interface
@@ -9269,6 +9319,11 @@ msgid "Open Recurring Item"
 msgstr ""
 
 #. command label
+#: crates/engine/src/cmd/reference_folder.rs
+msgid "Open Reference Folder"
+msgstr ""
+
+#. command label
 #: crates/ui-egui/src/lib.rs
 msgid "Open Replies and Forwards in a New Window"
 msgstr ""
@@ -9483,9 +9538,19 @@ msgstr ""
 msgid "Organizer: {name}"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original folder: {folder}"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposerScreen.kt
 msgid "Original message"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original messages will stay where they are."
 msgstr ""
 
 #. interface
@@ -10385,6 +10450,13 @@ msgid ""
 "Attachment"
 msgstr ""
 
+#. interface
+#: crates/ui-egui/src/ribbon.rs
+msgid ""
+"Remove\n"
+"Reference"
+msgstr ""
+
 #. command label, interface
 #: crates/engine/src/cmd/account.rs crates/ui-egui/src/dialogs.rs
 msgid "Remove Account"
@@ -10453,6 +10525,11 @@ msgid "Remove Recurrence"
 msgstr ""
 
 #. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs crates/ui-egui/src/reading.rs
+msgid "Remove Reference"
+msgstr ""
+
+#. command label, interface
 #: crates/engine/src/cmd/followup.rs crates/ui-egui/src/ribbon.rs
 msgid "Remove Reminder"
 msgstr ""
@@ -10465,6 +10542,11 @@ msgstr ""
 #. command label, interface
 #: crates/engine/src/cmd/shared.rs crates/ui-egui/src/dialogs.rs
 msgid "Remove Shared Mailbox"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Remove Unavailable References"
 msgstr ""
 
 #. command label
@@ -12004,6 +12086,11 @@ msgstr ""
 msgid ""
 "Show\n"
 "Training"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Show All Accounts"
 msgstr ""
 
 #. command label, interface, ribbon
@@ -17136,6 +17223,16 @@ msgid "a picture in a message is at most {mb} MB"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder already has that name"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder needs a name"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/auto_replies.rs
 msgid "a reply may be {most} characters long at most"
 msgstr ""
@@ -17354,6 +17451,16 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/people.rs
 msgid "contact"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to a folder that is gone"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to {folder}"
 msgstr ""
 
 #. why a mail server couldn't be used
@@ -17905,6 +18012,11 @@ msgid "no such paragraph"
 msgstr ""
 
 #. what a command says
+#: crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs
+msgid "no such reference folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs crates/engine/src/cmd/tasks/status.rs
 msgid "no task with id {id}"
 msgstr ""
@@ -18044,6 +18156,11 @@ msgstr ""
 msgid "only your own calendars can be put in a message"
 msgstr ""
 
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/mail.rs
+msgid "open the source folder to delete a message permanently"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 msgid "optional"
@@ -18082,6 +18199,11 @@ msgstr ""
 #. why a command can't run
 #: crates/engine/src/cmd/calendar/invitation.rs
 msgid "readOnly"
+msgstr ""
+
+#. name, what a command says
+#: crates/engine/src/cmd/rules.rs
+msgid "reference folders are kept on this computer"
 msgstr ""
 
 #. what a command says
@@ -18605,6 +18727,16 @@ msgid "the network couldn't get there"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is already in Deleted Items"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is no longer here"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 msgid "the parent folder belongs to another account"
 msgstr ""
@@ -18632,6 +18764,11 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/calendar/meeting.rs
 msgid "the proposed end is not after the proposed start"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the reference folder is full"
 msgstr ""
 
 #. what a command says
@@ -18960,6 +19097,11 @@ msgid "the signature was edited as text: its copy is what goes out"
 msgstr ""
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the source account has no Deleted Items folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs
 msgid "the task is gone"
 msgstr ""
@@ -19032,6 +19174,11 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/category.rs
 msgid "there are too many categories"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "there are too many reference folders"
 msgstr ""
 
 #. what a command says
@@ -19249,6 +19396,11 @@ msgstr ""
 msgid "this series has too many changed days"
 msgstr ""
 
+#. why a command can't run
+#: crates/engine/src/cmd/search_server.rs
+msgid "this view searches the mail already on this computer"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/forms.rs
 msgid "time"
@@ -19279,6 +19431,11 @@ msgstr ""
 #. why a mail server couldn't be used
 #: crates/proto/src/lib.rs
 msgid "unexpected server response: {reason}"
+msgstr ""
+
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs
+msgid "use Move Original to Deleted Items in a reference folder"
 msgstr ""
 
 #. interface

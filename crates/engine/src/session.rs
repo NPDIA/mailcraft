@@ -280,6 +280,9 @@ pub struct ViewState {
     pub module: Module,
     /// The mail folder in view.
     pub folder: Id,
+    /// All Mail is an account selection, independent of any physical folder.
+    #[serde(skip)]
+    pub all_mail_accounts: Option<Vec<Id>>,
     pub sort: SortBy,
     /// Newest (largest, Z) first.
     pub sort_descending: bool,
@@ -343,6 +346,7 @@ impl Default for ViewState {
         ViewState {
             module: Module::Mail,
             folder: 0,
+            all_mail_accounts: None,
             sort: SortBy::Date,
             sort_descending: true,
             conversations: false,
@@ -446,6 +450,7 @@ pub struct Stays {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ListOf {
     folder: Id,
+    all_mail_accounts: Option<Vec<Id>>,
     filter: Filter,
     /// The Gmail category it shows, if any (#911).
     gmail: Option<(Id, mailcraft_model::GmailCategory)>,
@@ -462,7 +467,14 @@ impl ListOf {
         let query = mailcraft_model::search::Query::parse(&view.search);
         let when = query.has_dates().then(when);
         let search = (!query.is_empty()).then_some((query, view.scope));
-        ListOf { folder: view.folder, filter: view.filter, gmail: view.gmail, search, when }
+        ListOf {
+            folder: view.folder,
+            all_mail_accounts: view.all_mail_accounts.clone().filter(|_| view.folder == 0),
+            filter: view.filter,
+            gmail: view.gmail,
+            search,
+            when,
+        }
     }
 }
 
@@ -1593,6 +1605,14 @@ impl Session {
         self.rev
     }
 
+    pub fn all_mail_accounts(&self) -> Option<&[Id]> {
+        self.view.all_mail_accounts.as_deref().filter(|_| self.view.folder == 0)
+    }
+
+    pub fn reference_folder(&self) -> Option<&mailcraft_model::ReferenceFolder> {
+        self.mailbox.reference_folders.get(&self.view.folder).map(Arc::as_ref)
+    }
+
     /// Changes each time another mailbox (or the same file again) is opened: a host that does
     /// something once a mailbox is opened looks for it to change.
     pub fn openings(&self) -> u64 {
@@ -1862,7 +1882,10 @@ impl Session {
     /// a large folder. `None` when anything else changed, or nothing did.
     fn list_stands(&self, before: &Mailbox, changes: &[(Id, Option<Arc<Message>>, Option<Arc<Message>>)]) -> Option<Vec<Id>> {
         const MOST: usize = 1024;
-        if self.view.filter != Filter::All || !mailcraft_model::search::Query::parse(&self.view.search).is_empty() {
+        if self.reference_folder().is_some()
+            || self.view.filter != Filter::All
+            || !mailcraft_model::search::Query::parse(&self.view.search).is_empty()
+        {
             return None;
         }
         if changes.is_empty() || changes.len() > MOST || !self.list_cache.as_ref().is_some_and(|c| c.key == self.list_key()) {
@@ -2032,7 +2055,7 @@ impl Session {
     /// What the message list is built from, but for the content brought into memory or let go of.
     fn list_state(&self) -> String {
         format!(
-            "{}|{}|{}|{}|{}|{}|{:?}|{}",
+            "{}|{}|{}|{}|{}|{}|{:?}|{:?}|{}",
             self.rev,
             self.today().to_days(),
             // `received:"last week"` is other days for another first day of the week, and
@@ -2043,6 +2066,7 @@ impl Session {
             self.prefs.show_groups,
             // (Not saved with the rest of the view, so not in its text.)
             self.view.gmail,
+            self.all_mail_accounts(),
             serde_json::to_string(&self.view).unwrap_or_default()
         )
     }
@@ -3130,7 +3154,7 @@ impl Session {
 
     /// Keep the view and the selection pointing at things that exist.
     pub fn normalize(&mut self) {
-        if self.mailbox.folder(self.view.folder).is_none() {
+        if self.all_mail_accounts().is_none() && self.reference_folder().is_none() && self.mailbox.folder(self.view.folder).is_none() {
             self.view.folder = self.mailbox.inbox().unwrap_or(0);
         }
         self.select_in_view();
@@ -3248,6 +3272,7 @@ impl Session {
         self.compose = None;
         self.composing.clear();
         self.view.folder = 0;
+        self.view.all_mail_accounts = None;
         self.view.search.clear();
         // Another mailbox starts with every conversation closed, though its folder has the same id.
         self.view.open.clear();

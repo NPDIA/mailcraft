@@ -802,6 +802,11 @@ msgstr "Název účtu"
 msgid "Accounts"
 msgstr "Účty"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Accounts shown in All Mail"
+msgstr ""
+
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/meeting.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/compose.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/people_merge.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -1190,6 +1195,11 @@ msgstr "Všechny kategorie"
 #, fuzzy
 msgid "All Categories…"
 msgstr "Všechny kategorie…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "All Mail"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/mail_view.rs
@@ -3166,6 +3176,11 @@ msgstr "Probíhá kontrola: zpráva přijde za chvíli…"
 msgid "Checking…"
 msgstr "Kontroluji…"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Choose Accounts"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/signature.rs
 #, fuzzy
@@ -3677,6 +3692,11 @@ msgstr "Kopírovat odkaz"
 msgid "Copy Link Address"
 msgstr "Kopírovat adresu odkazu"
 
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Copy Reference to Folder"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
@@ -3718,6 +3738,11 @@ msgstr "Zkopírovat zprávu pro správce"
 #, fuzzy
 msgid "Copy problems"
 msgstr "Kopírovat problémy"
+
+#. interface, name
+#: crates/ui-egui/src/forms.rs
+msgid "Copy reference to folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/move_items.rs
@@ -3976,6 +4001,11 @@ msgstr "Země"
 #, fuzzy
 msgid "Courier New"
 msgstr "Courier New"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Create"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
@@ -4241,7 +4271,7 @@ msgid "Delete Conversation"
 msgstr "Odstranit konverzaci"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "Odstranit složku"
@@ -4269,6 +4299,11 @@ msgstr "Trvale odstranit"
 #, fuzzy
 msgid "Delete Recurring Item"
 msgstr "Odstranit opakovanou položku"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Delete Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/rules.rs
@@ -5726,7 +5761,7 @@ msgid "Fold the calendars of this group away"
 msgstr "Sbalit kalendáře této skupiny"
 
 #. interface, name, ribbon location
-#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
+#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
 #, fuzzy
 msgid "Folder"
 msgstr "Složka"
@@ -5776,7 +5811,7 @@ msgid "Folder Size…"
 msgstr "Velikost složky…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Název složky"
@@ -9317,6 +9352,16 @@ msgid "Move Items"
 msgstr "Přesunout položky"
 
 #. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original to Deleted Items"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Move Recurring Item"
@@ -9737,6 +9782,11 @@ msgstr "Nová poštovní schránka"
 #, fuzzy
 msgid "New Meeting"
 msgstr "Nová schůzka"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "New Reference Folder"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/tasks.rs crates/ui-egui/src/forms.rs
@@ -11195,6 +11245,11 @@ msgid "Open Recurring Item"
 msgstr "Otevřít opakovanou položku"
 
 #. command label
+#: crates/engine/src/cmd/reference_folder.rs
+msgid "Open Reference Folder"
+msgstr ""
+
+#. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Open Replies and Forwards in a New Window"
@@ -11452,11 +11507,21 @@ msgstr "Organizátor: váš vlastní kalendář"
 msgid "Organizer: {name}"
 msgstr "Organizátor: {name}"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original folder: {folder}"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposerScreen.kt
 #, fuzzy
 msgid "Original message"
 msgstr "Původní zpráva"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original messages will stay where they are."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
@@ -12542,6 +12607,13 @@ msgstr ""
 "Odstranit\n"
 "přílohu"
 
+#. interface
+#: crates/ui-egui/src/ribbon.rs
+msgid ""
+"Remove\n"
+"Reference"
+msgstr ""
+
 #. command label, interface
 #: crates/engine/src/cmd/account.rs crates/ui-egui/src/dialogs.rs
 #, fuzzy
@@ -12625,6 +12697,11 @@ msgid "Remove Recurrence"
 msgstr "Odebrat opakování"
 
 #. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs crates/ui-egui/src/reading.rs
+msgid "Remove Reference"
+msgstr ""
+
+#. command label, interface
 #: crates/engine/src/cmd/followup.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Remove Reminder"
@@ -12641,6 +12718,11 @@ msgstr "Odebrat sdílený kalendář"
 #, fuzzy
 msgid "Remove Shared Mailbox"
 msgstr "Odebrat sdílenou poštovní schránku"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Remove Unavailable References"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -14514,6 +14596,11 @@ msgid ""
 msgstr ""
 "Zobrazit\n"
 "školení"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Show All Accounts"
+msgstr ""
 
 #. command label, interface, ribbon
 #: crates/engine/src/cmd/calendar.rs crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/ribbon.rs
@@ -20706,6 +20793,16 @@ msgid "a picture in a message is at most {mb} MB"
 msgstr "obrázek ve zprávě má nejvýše {mb} MB"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder already has that name"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder needs a name"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/auto_replies.rs
 #, fuzzy
 msgid "a reply may be {most} characters long at most"
@@ -20970,6 +21067,16 @@ msgstr "problém s připojením: {reason}"
 #, fuzzy
 msgid "contact"
 msgstr "kontakt"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to a folder that is gone"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to {folder}"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/net/src/lib.rs
@@ -21628,6 +21735,11 @@ msgid "no such paragraph"
 msgstr "takový odstavec neexistuje"
 
 #. what a command says
+#: crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs
+msgid "no such reference folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs crates/engine/src/cmd/tasks/status.rs
 #, fuzzy
 msgid "no task with id {id}"
@@ -21794,6 +21906,11 @@ msgstr ""
 msgid "only your own calendars can be put in a message"
 msgstr "do zprávy lze vložit jen vaše vlastní kalendáře"
 
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/mail.rs
+msgid "open the source folder to delete a message permanently"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 #, fuzzy
@@ -21841,6 +21958,11 @@ msgstr "obrázky z webu se nestahují: obrázek uložte a přidejte ho ze soubor
 #, fuzzy
 msgid "readOnly"
 msgstr "jen pro čtení"
+
+#. name, what a command says
+#: crates/engine/src/cmd/rules.rs
+msgid "reference folders are kept on this computer"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
@@ -22467,6 +22589,16 @@ msgid "the network couldn't get there"
 msgstr "síť se tam nedostala"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is already in Deleted Items"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is no longer here"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "the parent folder belongs to another account"
@@ -22501,6 +22633,11 @@ msgstr "platforma odmítla nebo selhala"
 #, fuzzy
 msgid "the proposed end is not after the proposed start"
 msgstr "navržený konec není po navrženém začátku"
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the reference folder is full"
+msgstr ""
 
 #. what a command says
 #: crates/model/src/mailbox_followup.rs
@@ -22893,6 +23030,11 @@ msgid "the signature was edited as text: its copy is what goes out"
 msgstr "podpis byl upraven jako text: odesílá se jeho kopie"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the source account has no Deleted Items folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs
 #, fuzzy
 msgid "the task is gone"
@@ -22980,6 +23122,11 @@ msgstr "kalendářů je příliš mnoho na to, aby se pro tento soubor vytvořil
 #, fuzzy
 msgid "there are too many categories"
 msgstr "kategorií je příliš mnoho"
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "there are too many reference folders"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs
@@ -23239,6 +23386,11 @@ msgstr "tato řada má příliš mnoho zrušených dnů"
 msgid "this series has too many changed days"
 msgstr "tato řada má příliš mnoho změněných dnů"
 
+#. why a command can't run
+#: crates/engine/src/cmd/search_server.rs
+msgid "this view searches the mail already on this computer"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
@@ -23277,6 +23429,11 @@ msgstr "zadejte adresu, například nekdo@example.org, nebo doménu, například
 #, fuzzy
 msgid "unexpected server response: {reason}"
 msgstr "neočekávaná odpověď serveru: {reason}"
+
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs
+msgid "use Move Original to Deleted Items in a reference folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/security.rs

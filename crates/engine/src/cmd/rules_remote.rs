@@ -90,6 +90,7 @@ fn remote_of(mailbox: &Mailbox, account: Id, rule: &Rule, sequence: i32) -> Remo
     for action in &rule.actions {
         match action {
             Action::MoveTo(folder) => move_to = server_folder(mailbox, account, *folder).unwrap_or_default(),
+            Action::ReferenceTo(_) => {}
             other => actions.push(other.clone()),
         }
     }
