@@ -680,9 +680,28 @@ fn exchange<'a>(run: &mut Run<'a>, sent: &[Message], host: Host) -> Option<Imap<
         }
         Err(()) => return None,
     };
-    let (mailboxes, dropped) = match imap.list_counted() {
+    // Share one retry between folder discovery and its STATUS optimisation. Reconnect in
+    // place, so the outbox and any changes already pushed are never replayed.
+    let mut retried = false;
+    let listing = match imap.list_counted() {
+        Err(e) if e.is_timeout() && !run.cancelled() => {
+            retried = true;
+            imap = match reopen_for_folders(run, imap, watched) {
+                Ok(fresh) => fresh,
+                Err(e) => {
+                    run.failed(said!("Couldn't read the list of folders"), &e);
+                    run.out.unfiled.extend(owed);
+                    return None;
+                }
+            };
+            imap.list_counted()
+        }
+        listing => listing,
+    };
+    let (mailboxes, dropped) = match listing {
         Ok(list) => list,
         Err(e) => {
+            run.note(&imap);
             let alive = run.failed(said!("Couldn't read the list of folders"), &e.into());
             run.out.unfiled.extend(owed);
             return alive.then_some(imap);
@@ -739,7 +758,25 @@ fn exchange<'a>(run: &mut Run<'a>, sent: &[Message], host: Host) -> Option<Imap<
     // that a folder that hasn't changed isn't opened (#276).
     let statuses = match folder_statuses(run, &mut imap, &plan) {
         Ok(statuses) => statuses,
-        Err(()) => return None,
+        Err(e) => {
+            let reopened = if e.is_timeout() && !retried && !run.cancelled() {
+                let cancel = run.cancel;
+                reopen_for_folders(run, imap, Some(cancel))
+            } else {
+                Err(e.into())
+            };
+            match reopened {
+                Ok(fresh) => {
+                    imap = fresh;
+                    // STATUS is only a shortcut. A direct read checks UIDVALIDITY again.
+                    HashMap::new()
+                }
+                Err(e) => {
+                    run.failed(said!("Couldn't read folder status"), &e);
+                    return None;
+                }
+            }
+        }
     };
     for (at, (mailbox, kind)) in plan.into_iter().take(MAX_FOLDERS).enumerate() {
         if run.cancelled() {
@@ -784,6 +821,16 @@ fn exchange<'a>(run: &mut Run<'a>, sent: &[Message], host: Host) -> Option<Imap<
     Some(imap)
 }
 
+/// Start a new authenticated stream after a folder query timed out. The old stream may still
+/// receive replies to commands outstanding at the deadline, so drop it before reconnecting.
+fn reopen_for_folders<'a>(run: &mut Run<'a>, broken: Imap<Stream<'a>>, cancel: Option<&'a AtomicBool>) -> Result<Imap<Stream<'a>>, NetError> {
+    run.note(&broken);
+    drop(broken);
+    let fresh = open_imap_with(&run.request.account, run.request.secret(), &run.limits.patience, cancel)?;
+    run.counted = 0;
+    Ok(fresh)
+}
+
 /// The Inbox, read before the folders are listed (#276): `Ok(Some(id))` with the local folder
 /// that took its news, `Ok(None)` when it was left to the run's own turn, `Err` when the connection
 /// is gone (said in the run). Only for an account the mailbox has an Inbox of, and only when
@@ -825,7 +872,7 @@ fn inbox_first<'r>(run: &mut Run<'r>, imap: &mut Imap<Stream<'r>>, states: &Stat
 /// it is read as (#276). The Inbox is never asked (it is read every run, and is where mail
 /// comes), nor is a folder that can't be opened. A folder the server doesn't answer for is
 /// absent, and is read. `Err` when the connection is gone (said in the run).
-fn folder_statuses(run: &mut Run, imap: &mut Imap<Stream<'_>>, plan: &[(&Mailbox, FolderKind)]) -> Result<HashMap<String, FolderStatus>, ()> {
+fn folder_statuses(run: &mut Run, imap: &mut Imap<Stream<'_>>, plan: &[(&Mailbox, FolderKind)]) -> Result<HashMap<String, FolderStatus>, ProtoError> {
     let asked: Vec<(String, &str)> = plan
         .iter()
         .take(MAX_FOLDERS)
@@ -837,15 +884,9 @@ fn folder_statuses(run: &mut Run, imap: &mut Imap<Stream<'_>>, plan: &[(&Mailbox
         return Ok(HashMap::new());
     }
     let raws: Vec<&str> = asked.iter().map(|(_, raw)| *raw).collect();
-    let answers = match imap.status_many(&raws) {
-        Ok(answers) => answers,
-        Err(e) => {
-            run.failed(said!("Couldn't read the list of folders"), &e.into());
-            return Err(());
-        }
-    };
+    let answers = imap.status_many(&raws);
     run.note(imap);
-    Ok(asked.into_iter().zip(answers).filter_map(|((remote, _), status)| Some((remote, status?))).collect())
+    Ok(asked.into_iter().zip(answers?).filter_map(|((remote, _), status)| Some((remote, status?))).collect())
 }
 
 /// Whether a folder, last read whole when the server said `state.status` of it, is as it was

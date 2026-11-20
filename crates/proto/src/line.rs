@@ -26,6 +26,10 @@ fn closed() -> ProtoError {
     ProtoError::Io(said!("the server closed the connection"))
 }
 
+pub(crate) fn timed_out() -> ProtoError {
+    ProtoError::Io(said!("the server took too long to answer"))
+}
+
 /// An encrypted connection whose records failed their check in the middle (#1581): carried in an
 /// `io::Error` by the transport, said in the interface's language here.
 #[derive(Debug)]
@@ -46,7 +50,7 @@ fn io_error(e: &std::io::Error) -> ProtoError {
         ));
     }
     match e.kind() {
-        ErrorKind::TimedOut | ErrorKind::WouldBlock => ProtoError::Io(said!("the server took too long to answer")),
+        ErrorKind::TimedOut | ErrorKind::WouldBlock => timed_out(),
         ErrorKind::UnexpectedEof | ErrorKind::ConnectionAborted | ErrorKind::ConnectionReset | ErrorKind::BrokenPipe => closed(),
         // The system's own words, as it said them.
         _ => ProtoError::Io(crate::tidy(&e.to_string()).into()),

@@ -3983,6 +3983,11 @@ msgstr "Nu s-au putut citi categoriile Gmail ale „{name}”"
 
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
+msgid "Couldn't read folder status"
+msgstr ""
+
+#. why a mail server couldn't be used
+#: crates/net/src/sync.rs
 #, fuzzy
 msgid "Couldn't read the list of folders"
 msgstr "Lista de dosare nu a putut fi citită"

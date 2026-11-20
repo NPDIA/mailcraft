@@ -44,6 +44,11 @@ pub enum ProtoError {
 }
 
 impl ProtoError {
+    /// Whether the protocol stream timed out waiting for progress.
+    pub fn is_timeout(&self) -> bool {
+        self == &line::timed_out()
+    }
+
     /// The error as the owner is told it: what kind of trouble, and why.
     pub fn said(&self) -> Text {
         match self {
