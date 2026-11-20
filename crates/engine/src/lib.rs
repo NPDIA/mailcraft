@@ -58,6 +58,8 @@ pub mod private_keys;
 mod private_keys_fixtures_tests;
 #[cfg(test)]
 mod private_keys_tests;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod profile_transfer;
 pub mod sample;
 pub mod send_warnings;
 pub mod sender_warnings;

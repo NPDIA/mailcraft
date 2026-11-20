@@ -1,0 +1,1 @@
+- File › Info can transfer selected account settings, reading preferences and local rules to another installation. Review the accounts before importing and sign in on the destination computer. ([#12](https://github.com/NPDIA/mailcraft/issues/12), [#13](https://github.com/NPDIA/mailcraft/issues/13)).

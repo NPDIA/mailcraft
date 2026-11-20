@@ -797,6 +797,19 @@ msgstr "Ustawienia konta"
 msgid "Account name"
 msgstr "Nazwa konta"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Account settings exported."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Account settings exported. {n} rule was skipped."
+msgid_plural "Account settings exported. {n} rules were skipped."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 #. android, interface, ribbon
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Navigation.kt crates/ui-egui/src/backstage.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -963,8 +976,8 @@ msgstr "Dodaj zadanie do {address}"
 msgid "Add a task to {address} (it waits here until To Do is allowed)"
 msgstr "Dodaj zadanie do {address} (czeka tutaj, dopóki To Do nie zostanie dozwolone)"
 
-#. android
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AppDrawer.kt
+#. android, interface
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AppDrawer.kt crates/ui-egui/src/settings_transfer.rs
 #, fuzzy
 msgid "Add account"
 msgstr "Dodaj konto"
@@ -3116,6 +3129,11 @@ msgid "Check the account's settings"
 msgstr "Sprawdź ustawienia konta"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Check the accounts and mail servers before importing. You can sign in through Send/Receive afterward."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/send_warnings.rs
 #, fuzzy
 msgid "Check the recipients before this message goes:"
@@ -3200,6 +3218,16 @@ msgid "Choose a date…"
 msgstr "Wybierz datę…"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a different file from the open mailbox."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a file ending in .mailcraft-settings."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Choose a first and a last day, at most a year apart."
@@ -3212,6 +3240,11 @@ msgid "Choose a folder"
 msgstr "Wybierz folder"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a settings transfer or a mailbox from an earlier installation."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/signatures.rs
 #, fuzzy
 msgid "Choose default signatures"
@@ -3222,6 +3255,11 @@ msgstr "Wybierz domyślne podpisy"
 #, fuzzy
 msgid "Choose the kind of account"
 msgstr "Wybierz rodzaj konta"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose what to transfer. The file contains account addresses and settings, and any rules you include."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/report_problem.rs
@@ -3504,6 +3542,11 @@ msgstr "Potwierdź serwery"
 #, fuzzy
 msgid "Confirm servers"
 msgstr "Potwierdź serwery"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Conflicting account, skipped"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/calendar_view.rs
@@ -5450,6 +5493,16 @@ msgstr ""
 "Eksportuj\n"
 "folder"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Export Account Settings"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Export Account Settings…"
+msgstr ""
+
 #. command label, interface
 #: crates/engine/src/cmd/file.rs crates/ui-egui/src/backstage.rs
 #, fuzzy
@@ -6907,6 +6960,11 @@ msgid "Import"
 msgstr "Importuj"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import Account Settings…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/files.rs
 #, fuzzy
 msgid "Import Calendar File"
@@ -6929,6 +6987,11 @@ msgstr "Importuj pocztę"
 #, fuzzy
 msgid "Import Public Keys"
 msgstr "Importuj klucze publiczne"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import Selected"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -6983,6 +7046,11 @@ msgstr "Importuj klucz OpenPGP"
 #, fuzzy
 msgid "Import an OpenPGP key (.asc)…"
 msgstr "Importuj klucz OpenPGP (.asc)…"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import local rules (disabled for review)"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/files.rs
@@ -7234,6 +7302,16 @@ msgid "Include diagnostics"
 msgstr "Dołącz diagnostykę"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Include local rules for the selected accounts"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Include reading and editing preferences"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 #, fuzzy
 msgid "Include the original message when replying"
@@ -7364,6 +7442,11 @@ msgstr "Do Twoich kontaktów na tym komputerze, każdy oznaczony jako zaimportow
 #, fuzzy
 msgid "Into your to-do list on this computer. Nothing is sent to anybody."
 msgstr "Do Twojej listy zadań na tym komputerze. Nic nie jest nikomu wysyłane."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Invalid account, skipped"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -7733,6 +7816,11 @@ msgstr "Zachowaj konto"
 #, fuzzy
 msgid "Keep data"
 msgstr "Zachowaj dane"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Keep existing account"
+msgstr ""
 
 #. command label, interface
 #: crates/ui-egui/src/lib.rs crates/ui-egui/src/server_sync.rs
@@ -8136,6 +8224,11 @@ msgstr "Ładowanie…"
 msgid "Local mailbox"
 msgstr "Lokalna skrzynka pocztowa"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Local, IMAP and Microsoft accounts can be transferred."
+msgstr ""
+
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs
 #, fuzzy
@@ -8381,6 +8474,11 @@ msgstr "Poczta, kalendarz, osoby i zadania, napisane od podstaw w języku Rust."
 #, fuzzy
 msgid "Mail, calendar, people and tasks, written from scratch in Rust. It runs natively on macOS, Windows, Linux and BSD, and in the browser."
 msgstr "Poczta, kalendarz, osoby i zadania, napisane od podstaw w języku Rust. Działa natywnie w systemach macOS, Windows, Linux i BSD oraz w przeglądarce."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Mail, passwords and sign-in tokens are kept out of the transfer."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/graph_switch.rs
@@ -10791,7 +10889,7 @@ msgid "Numbering"
 msgstr "Numerowanie"
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AboutPages.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarScreen.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TaskEditorScreen.kt crates/ui-egui/src/auto_replies.rs crates/ui-egui/src/calendar_sync.rs crates/ui-egui/src/check_names.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/move_items.rs crates/ui-egui/src/reminder_dialog.rs crates/ui-egui/src/send_later.rs crates/ui-egui/src/settings_notice.rs crates/ui-egui/src/software.rs crates/ui-egui/src/updates.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AboutPages.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarScreen.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TaskEditorScreen.kt crates/ui-egui/src/auto_replies.rs crates/ui-egui/src/calendar_sync.rs crates/ui-egui/src/check_names.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/move_items.rs crates/ui-egui/src/reminder_dialog.rs crates/ui-egui/src/send_later.rs crates/ui-egui/src/settings_notice.rs crates/ui-egui/src/settings_transfer.rs crates/ui-egui/src/software.rs crates/ui-egui/src/updates.rs
 #, fuzzy
 msgid "OK"
 msgstr "OK"
@@ -12307,6 +12405,16 @@ msgid "Reading Pane"
 msgstr "Okienko czytania"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Reading account settings…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Reading and editing preferences imported"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs
 #, fuzzy
 msgid "Reading pane at the bottom"
@@ -12859,6 +12967,11 @@ msgid "Replace All"
 msgstr "Zamień wszystko"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Replace reading and editing preferences"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 #, fuzzy
 msgid "Replace what is open with a .mailcraft file"
@@ -13102,6 +13215,11 @@ msgstr "Odwróć kolejność"
 msgid "Review"
 msgstr "Recenzja"
 
+#. interface, name
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Review Account Settings"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/ews_setup.rs
 #, fuzzy
@@ -13183,6 +13301,11 @@ msgstr "Reguły i kategorie"
 #, fuzzy
 msgid "Rules for"
 msgstr "Reguły dla"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Rules with a missing destination or an existing name are skipped."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/rule_sync.rs
@@ -13427,6 +13550,11 @@ msgstr "Zapisz plik wiadomości jako"
 #, fuzzy
 msgid "Save Signature"
 msgstr "Zapisz podpis"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Save Transfer…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/calendar_view.rs
@@ -15028,6 +15156,11 @@ msgstr "Zaloguj się przez Wyślij/Odbierz, aby zobaczyć, kiedy inni są zajęc
 #, fuzzy
 msgid "Sign-in cancelled"
 msgstr "Logowanie anulowane"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Sign-in name: {login}"
+msgstr ""
 
 #. android, command label, ribbon
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsPages.kt crates/engine/src/cmd/compose.rs crates/ui-egui/src/ribbon.rs
@@ -17025,6 +17158,11 @@ msgid "The one this build came with"
 msgstr "Ten dołączony do tej wersji programu"
 
 #. interface
+#: crates/ui-egui/src/files.rs crates/ui-egui/src/settings_transfer.rs
+msgid "The open mailbox changed. Start the transfer again."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs.rs
 #, fuzzy
 msgid "The organizer can't be written to from this account."
@@ -17449,6 +17587,11 @@ msgstr "Nie można odczytać pliku ustawień (ui.json), więc przywrócono ustaw
 #, fuzzy
 msgid "The settings file (ui.json) couldn't be read, so the default settings were restored. The old file was renamed {file}."
 msgstr "Nie można odczytać pliku ustawień (ui.json), więc przywrócono ustawienia domyślne. Stary plik otrzymał nazwę {file}."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "The settings file could not be read."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
@@ -24139,6 +24282,14 @@ msgstr[0] "{n} konto"
 msgstr[1] "{n} konta"
 msgstr[2] "{n} kont"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} account added"
+msgid_plural "{n} accounts added"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsSummaries.kt
 #, fuzzy
@@ -24333,6 +24484,14 @@ msgid_plural "{n} downloaded pictures are kept on this phone ({size})."
 msgstr[0] "{n} pobrany obraz jest przechowywany na tym telefonie ({size})."
 msgstr[1] "{n} pobrane obrazy są przechowywane na tym telefonie ({size})."
 msgstr[2] "{n} pobranych obrazów jest przechowywanych na tym telefonie ({size})."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} entry skipped"
+msgid_plural "{n} entries skipped"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarSpeech.kt crates/ui-egui/src/backstage.rs crates/ui-egui/src/lib.rs
@@ -25014,6 +25173,14 @@ msgid_plural "{n} results in {scope}"
 msgstr[0] "{n} wynik w: {scope}"
 msgstr[1] "{n} wyniki w: {scope}"
 msgstr[2] "{n} wyników w: {scope}"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} rule added"
+msgid_plural "{n} rules added"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs

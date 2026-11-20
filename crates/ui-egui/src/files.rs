@@ -40,6 +40,10 @@ pub(crate) enum AfterPick {
     Tree,
     /// Ask for the picked .pst file's password and place, then import it ([`crate::import_pst`]).
     Pst,
+    #[cfg(not(target_arch = "wasm32"))]
+    TransferOpen { opening: u64 },
+    #[cfg(not(target_arch = "wasm32"))]
+    TransferSave { data: mailcraft_engine::profile_transfer::Transfer, skipped: usize },
 }
 
 impl FileDialogRequest {
@@ -180,6 +184,22 @@ pub(crate) fn open(app: &mut MailApp, purpose: &str) {
     let _ = ask(app, FileDialogRequest::Open { purpose: purpose.to_string() }, AfterPick::Open(purpose.to_string(), asking));
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn transfer_open(app: &mut MailApp) -> Result<Value, String> {
+    let opening = app.session.openings();
+    ask(app, FileDialogRequest::Open { purpose: "settingsTransfer".into() }, AfterPick::TransferOpen { opening })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) fn transfer_save(
+    app: &mut MailApp,
+    name: &str,
+    data: mailcraft_engine::profile_transfer::Transfer,
+    skipped: usize,
+) -> Result<Value, String> {
+    ask(app, FileDialogRequest::Save { name: name.into() }, AfterPick::TransferSave { data, skipped })
+}
+
 fn ask(app: &mut MailApp, req: FileDialogRequest, after: AfterPick) -> Result<Value, String> {
     if app.file_dialog.is_some() {
         app.status(tl!("A file dialog is already open."));
@@ -246,6 +266,16 @@ pub(crate) fn poll(app: &mut MailApp) -> Option<Result<Value, String>> {
         AfterPick::Open(purpose, asking) => opened_path(app, &purpose, &path, asking),
         AfterPick::Tree => app.run("ui.dialog", json!({"name": "importTree", "path": path})),
         AfterPick::Pst => app.run("ui.dialog", json!({"name": "importPst", "path": path})),
+        #[cfg(not(target_arch = "wasm32"))]
+        AfterPick::TransferOpen { opening } => {
+            if opening == app.session.openings() && !app.data_removed {
+                crate::settings_transfer::picked(app, std::path::Path::new(&path))
+            } else {
+                Err(tl!("The open mailbox changed. Start the transfer again.").into())
+            }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        AfterPick::TransferSave { data, skipped } => crate::settings_transfer::save(app, &data, std::path::Path::new(&path), skipped),
         AfterPick::Export { command, mut params } => {
             if let Some(o) = params.as_object_mut() {
                 o.insert("path".into(), json!(path));

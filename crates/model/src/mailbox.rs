@@ -526,6 +526,10 @@ pub struct Account {
     /// ([`Mailbox::accounts`]). `None` for every other account.
     #[serde(skip)]
     pub as_written: Option<AsWritten>,
+    /// An account added through a settings transfer must sign in before its remembered
+    /// credentials can be reused. A mailbox without this field keeps its existing behavior.
+    #[serde(skip_serializing_if = "is_false", deserialize_with = "crate::sync::lenient_or_default")]
+    pub transfer_needs_sign_in: bool,
     /// The folder this account's snoozed mail waits in (#949), known by its id so that a rename
     /// or another language makes no second one. `None` until the first message is snoozed.
     #[serde(skip_serializing_if = "Option::is_none", deserialize_with = "crate::sync::lenient")]

@@ -3361,6 +3361,21 @@ impl Session {
         self.dirty = true;
     }
 
+    /// The account and local rule changes of a confirmed settings import, kept as one step.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) fn install_transferred_settings(&mut self, mailbox: Mailbox) {
+        let mut before = self.snapshot("Import Account Settings");
+        before.touched = crate::undo::touched(&before.mailbox, &mailbox);
+        self.mailbox = mailbox;
+        self.history.push(before);
+        if self.history.len() > MAX_HISTORY {
+            self.history.remove(0);
+        }
+        self.redo.clear();
+        self.steps_moved = self.steps_moved.wrapping_add(1);
+        self.mailbox_changed();
+    }
+
     /// Whether a .pst import is putting its mail in, batch by batch (Undo waits).
     pub fn importing_pst(&self) -> bool {
         self.pst_running.is_some()

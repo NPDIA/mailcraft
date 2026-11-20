@@ -95,6 +95,9 @@ fn open_filters(d: rfd::AsyncFileDialog, purpose: &str) -> rfd::AsyncFileDialog 
             .add_filter("Calendars", &["ics", "ical"])
             .add_filter("Contacts", &["vcf", "vcard"])
             .add_filter("All files", &["*"]),
+        "settingsTransfer" => {
+            d.add_filter("MailCraft account settings", &["mailcraft-settings"]).add_filter("Existing MailCraft mailbox", &["mailcraft"])
+        }
         "pst" => d.add_filter(".pst files", &["pst"]).add_filter("All files", &["*"]),
         "picture" => d.add_filter("Pictures (PNG, JPEG, GIF)", &["png", "jpg", "jpeg", "gif"]),
         "bodyPicture" => d.add_filter("Pictures (PNG, JPEG, GIF, WebP)", &["png", "jpg", "jpeg", "gif", "webp"]),

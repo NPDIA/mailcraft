@@ -162,6 +162,8 @@ pub enum Dialog {
     ImportTree(Box<crate::import_tree::ImportTree>),
     /// A .pst file, before and while its mail is imported ([`crate::import_pst`]).
     ImportPst(Box<crate::import_pst::ImportPst>),
+    #[cfg(not(target_arch = "wasm32"))]
+    SettingsTransfer(Box<crate::settings_transfer::Dialog>),
     /// People › Merge Duplicates (#506, [`crate::merge_contacts`]): it only collects what to
     /// merge, then runs `people.merge`.
     MergeContacts(Box<crate::merge_contacts::MergeContacts>),
@@ -287,6 +289,8 @@ impl Dialog {
             Dialog::AutomaticReplies(_) => "automaticReplies",
             Dialog::ImportTree(_) => "importTree",
             Dialog::ImportPst(_) => "importPst",
+            #[cfg(not(target_arch = "wasm32"))]
+            Dialog::SettingsTransfer(_) => "settingsTransfer",
             Dialog::MergeContacts(_) => "mergeContacts",
             Dialog::Pick(p) => match p.kind {
                 crate::pick_item::PickKind::Message => "attachItem",
@@ -2291,6 +2295,12 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
         Dialog::ImportTree(dialog) => {
             let mut done = false;
             let open = window(ctx, tl!("Import a Folder of Mailboxes"), crate::import_tree::WIDTH, |ui| done = dialog.show(app, ui, enter));
+            close |= !open || done;
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        Dialog::SettingsTransfer(dialog) => {
+            let mut done = false;
+            let open = window(ctx, dialog.title(), 520.0, |ui| done = dialog.show(app, ui));
             close |= !open || done;
         }
         Dialog::ImportPst(dialog) => {
