@@ -49,13 +49,8 @@ mod os {
 
     use super::{MAX_PIECES, pieces};
 
-    /// What the entries are filed under in the system's store. Together with the entry's name
-    /// (`<key>#n`, `<key>#0`…) it is how an entry is found again, so it never changes: on Windows
-    /// the credential is `<key>#0.MailCraft`, in the macOS keychain a generic password whose
-    /// service is `MailCraft` and account `<key>#0`, and in the Secret Service an item whose
-    /// `service` and `username` attributes are the two. (keyring 3, which 0.4 used, filed them
-    /// alike; the attributes it added in the Secret Service are not searched on.)
-    pub(super) const SERVICE: &str = "MailCraft";
+    /// This fork uses its own service name for every entry in the system credential store.
+    pub(super) const SERVICE: &str = "MailCraft_NPDIA_Custom";
 
     /// Opens the system's store.
     type Connect = Box<dyn Fn() -> keyring_core::Result<Arc<CredentialStore>> + Send + Sync>;
@@ -265,12 +260,10 @@ mod tests {
         assert_eq!(store.take_trouble(), None);
     }
 
-    /// What is kept is filed exactly as 0.4 (keyring 3) filed it, service `MailCraft` and entries
-    /// `<key>#n`, `<key>#0`…, so that what an earlier version remembered is found: in keyring's
-    /// mock store, never the system's.
+    /// Keep the multipart entry format under the fork's own service in the mock store.
     #[test]
     #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux", target_os = "freebsd"))]
-    fn entries_keep_the_names_earlier_versions_gave_them() {
+    fn entries_keep_their_chunk_names_under_the_fork_service() {
         use std::sync::Arc;
 
         use keyring_core::{CredentialStore, mock};
@@ -279,11 +272,17 @@ mod tests {
             let mock = mock.clone();
             os::OsStore::with(Box::new(move || Ok(mock.clone())))
         };
-        let entry = |user: &str| mock.build("MailCraft", user, None).unwrap();
-        assert_eq!(os::SERVICE, "MailCraft");
+        let entry = |user: &str| mock.build(os::SERVICE, user, None).unwrap();
+        assert_eq!(os::SERVICE, "MailCraft_NPDIA_Custom");
 
-        // Kept by an earlier version, in two pieces: found and put back together.
         let key = "refresh:old@mailcraft.example";
+        let upstream_marker = mock.build("MailCraft", &format!("{key}#n"), None).unwrap();
+        let upstream_piece = mock.build("MailCraft", &format!("{key}#0"), None).unwrap();
+        upstream_marker.set_password("1").unwrap();
+        upstream_piece.set_password("synthetic-upstream-entry").unwrap();
+        assert_eq!(store.get(key), None);
+
+        // Kept by the fork in two pieces: found and put back together.
         entry(&format!("{key}#n")).set_password("2").unwrap();
         entry(&format!("{key}#0")).set_password("first-").unwrap();
         entry(&format!("{key}#1")).set_password("second").unwrap();
@@ -300,6 +299,7 @@ mod tests {
         assert_eq!(store.get("password:nobody@mailcraft.example"), None);
         store.delete(key);
         assert_eq!(store.get(key), None);
+        assert_eq!(upstream_piece.get_password().unwrap(), "synthetic-upstream-entry");
         assert_eq!(store.take_trouble(), None);
     }
 

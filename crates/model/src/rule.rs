@@ -78,6 +78,8 @@ impl Condition {
 pub enum Action {
     /// Move to the folder with this id.
     MoveTo(Id),
+    /// File a reference to the original message in a local reference folder.
+    ReferenceTo(Id),
     Categorize(String),
     Flag,
     MarkRead,
@@ -90,6 +92,7 @@ impl Action {
     pub fn describe(&self) -> String {
         match self {
             Action::MoveTo(_) => "move it to a folder".into(),
+            Action::ReferenceTo(_) => "copy its reference to a folder".into(),
             Action::Categorize(c) => format!("categorize it as \"{c}\""),
             Action::Flag => "flag it".into(),
             Action::MarkRead => "mark it as read".into(),

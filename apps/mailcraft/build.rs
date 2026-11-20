@@ -16,8 +16,8 @@ fn main() {
     }
     let mut res = winresource::WindowsResource::new();
     res.set_icon("../../assets/app-icon/mailcraft.ico")
-        .set("ProductName", "MailCraft")
-        .set("FileDescription", "MailCraft mail and calendar")
+        .set("ProductName", "MailCraft_NPDIA_Custom")
+        .set("FileDescription", "MailCraft_NPDIA_Custom mail and calendar")
         .set("CompanyName", "MailCraft contributors")
         .set("LegalCopyright", "Copyright (c) the MailCraft authors. MIT OR Apache-2.0.")
         .set("OriginalFilename", "mailcraft.exe")

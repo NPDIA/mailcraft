@@ -40,7 +40,13 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("mail.deletePermanently", "Delete Permanently", "Home › Delete", delete_permanently)
             .key("Shift+Delete")
             .params(IDS_WHOLE)
-            .selection(needs_message),
+            .selection(|s| {
+                if s.reference_folder().is_some() || s.all_mail_accounts().is_some() {
+                    Some("open the source folder to delete a message permanently")
+                } else {
+                    needs_message(s)
+                }
+            }),
         CommandSpec::new("mail.archive", "Archive", "Home › Delete", archive).key("Backspace").params(IDS_WHOLE).selection(needs_message),
         CommandSpec::new("mail.move", "Move to Folder", "Home › Move", move_to)
             .key("Mod+Shift+V")
@@ -718,8 +724,16 @@ fn list_in_view(s: &mut Session, limit: usize) -> CmdResult {
 }
 
 fn delete(s: &mut Session, v: &Value) -> CmdResult {
+    if s.reference_folder().is_some() {
+        return super::reference_folder::remove_current(s, v);
+    }
     let ids = targets_whole(s, v)?;
     let before = s.rows();
+    if s.all_mail_accounts().is_some() {
+        let moved = s.mailbox.move_to_deleted_items(&ids)?;
+        select_after_removal(s, &before, &ids);
+        return Ok(json!({"deleted": moved, "permanently": 0}));
+    }
     // All in one go (#1037): a large selection one at a time took time with its square.
     let gone = s.mailbox.delete_messages(&ids)?;
     select_after_removal(s, &before, &ids);
@@ -727,6 +741,9 @@ fn delete(s: &mut Session, v: &Value) -> CmdResult {
 }
 
 fn delete_permanently(s: &mut Session, v: &Value) -> CmdResult {
+    if s.reference_folder().is_some() || s.all_mail_accounts().is_some() {
+        return Err(fail("open the source folder to delete a message permanently"));
+    }
     let ids = targets_whole(s, v)?;
     let before = s.rows();
     s.mailbox.remove_messages(&ids)?;

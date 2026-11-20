@@ -137,6 +137,7 @@ mod quote_tests;
 mod range_select_tests;
 #[cfg(test)]
 mod read_receipt_tests;
+pub mod reference_folder;
 #[cfg(test)]
 mod refused_delete_tests;
 #[cfg(test)]
@@ -216,6 +217,7 @@ pub fn registry() -> Registry {
     v.extend(picture::specs());
     v.extend(writing_tools::specs());
     v.extend(folder::specs());
+    v.extend(reference_folder::specs());
     v.extend(view::specs());
     v.extend(calendar::specs());
     v.extend(calendar_extra::specs());

@@ -291,6 +291,7 @@ pub(super) fn rule_body(rule: &RemoteRule) -> Result<Value, &'static str> {
             }
             Action::Flag => return Err("the server's rules can't flag mail"),
             Action::MoveTo(_) => return Err("a folder to move mail to is named by the server's id"),
+            Action::ReferenceTo(_) => return Err("reference folders are kept on this computer"),
         }
     }
     if !categories.is_empty() {

@@ -27,10 +27,17 @@ pub(crate) struct Envelope {
 }
 
 impl Envelope {
-    /// The account's address, and To + Cc + Bcc, each address once.
+    /// The account's address or its selected alias, and To + Cc + Bcc, each address once.
     pub(crate) fn of(account: &Account, message: &Message) -> Result<Envelope, NetError> {
-        let from = account.email.trim();
-        if !is_address(from) {
+        let from = if message.send_as_alias {
+            account
+                .send_alias(&message.from.email)
+                .ok_or_else(|| NetError::Config(said!("the selected sending alias isn't configured for this account")))?
+                .email
+        } else {
+            account.email.trim().to_string()
+        };
+        if !is_address(&from) {
             return Err(NetError::Config(said!("the account has no usable e-mail address to send from")));
         }
         let mut recipients: Vec<String> = Vec::new();
@@ -50,7 +57,7 @@ impl Envelope {
         if recipients.is_empty() {
             return Err(NetError::Config(said!("the message has no recipients")));
         }
-        Ok(Envelope { from: from.to_string(), recipients })
+        Ok(Envelope { from, recipients })
     }
 }
 

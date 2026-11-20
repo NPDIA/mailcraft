@@ -796,11 +796,29 @@ msgstr "Nastavení účtu"
 msgid "Account name"
 msgstr "Název účtu"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Account settings exported."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Account settings exported. {n} rule was skipped."
+msgid_plural "Account settings exported. {n} rules were skipped."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 #. android, interface, ribbon
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/Navigation.kt crates/ui-egui/src/backstage.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Accounts"
 msgstr "Účty"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Accounts shown in All Mail"
+msgstr ""
 
 #. ribbon, ribbon location
 #: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar/meeting.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/compose.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/people.rs crates/engine/src/cmd/people_merge.rs crates/ui-egui/src/ribbon.rs
@@ -962,8 +980,8 @@ msgstr "Přidat úkol do {address}"
 msgid "Add a task to {address} (it waits here until To Do is allowed)"
 msgstr "Přidat úkol do {address} (počká zde, dokud nebude povolen To Do)"
 
-#. android
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AppDrawer.kt
+#. android, interface
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountScreens.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AppDrawer.kt crates/ui-egui/src/settings_transfer.rs
 #, fuzzy
 msgid "Add account"
 msgstr "Přidat účet"
@@ -1190,6 +1208,11 @@ msgstr "Všechny kategorie"
 #, fuzzy
 msgid "All Categories…"
 msgstr "Všechny kategorie…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "All Mail"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/mail_view.rs
@@ -3107,6 +3130,11 @@ msgid "Check the account's settings"
 msgstr "Zkontrolujte nastavení účtu"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Check the accounts and mail servers before importing. You can sign in through Send/Receive afterward."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/agent_gate.rs crates/ui-egui/src/send_warnings.rs
 #, fuzzy
 msgid "Check the recipients before this message goes:"
@@ -3166,6 +3194,11 @@ msgstr "Probíhá kontrola: zpráva přijde za chvíli…"
 msgid "Checking…"
 msgstr "Kontroluji…"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Choose Accounts"
+msgstr ""
+
 #. command label
 #: crates/engine/src/cmd/signature.rs
 #, fuzzy
@@ -3191,6 +3224,16 @@ msgid "Choose a date…"
 msgstr "Zvolte datum…"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a different file from the open mailbox."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a file ending in .mailcraft-settings."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Choose a first and a last day, at most a year apart."
@@ -3203,6 +3246,11 @@ msgid "Choose a folder"
 msgstr "Zvolte složku"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose a settings transfer or a mailbox from an earlier installation."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/signatures.rs
 #, fuzzy
 msgid "Choose default signatures"
@@ -3213,6 +3261,11 @@ msgstr "Zvolit výchozí podpisy"
 #, fuzzy
 msgid "Choose the kind of account"
 msgstr "Zvolte druh účtu"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Choose what to transfer. The file contains account addresses and settings, and any rules you include."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/report_problem.rs
@@ -3497,6 +3550,11 @@ msgid "Confirm servers"
 msgstr "Potvrdit servery"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Conflicting account, skipped"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs crates/ui-egui/src/calendar_view.rs
 #, fuzzy
 msgid "Connect"
@@ -3677,6 +3735,11 @@ msgstr "Kopírovat odkaz"
 msgid "Copy Link Address"
 msgstr "Kopírovat adresu odkazu"
 
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Copy Reference to Folder"
+msgstr ""
+
 #. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
@@ -3718,6 +3781,11 @@ msgstr "Zkopírovat zprávu pro správce"
 #, fuzzy
 msgid "Copy problems"
 msgstr "Kopírovat problémy"
+
+#. interface, name
+#: crates/ui-egui/src/forms.rs
+msgid "Copy reference to folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/move_items.rs
@@ -3976,6 +4044,11 @@ msgstr "Země"
 #, fuzzy
 msgid "Courier New"
 msgstr "Courier New"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Create"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
@@ -4241,7 +4314,7 @@ msgid "Delete Conversation"
 msgstr "Odstranit konverzaci"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "Odstranit složku"
@@ -4269,6 +4342,11 @@ msgstr "Trvale odstranit"
 #, fuzzy
 msgid "Delete Recurring Item"
 msgstr "Odstranit opakovanou položku"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Delete Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/rules.rs
@@ -5167,6 +5245,11 @@ msgstr "Končí v určitý den"
 msgid "Enter a date and a time."
 msgstr "Zadejte datum a čas."
 
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Enter addresses that your provider lets this account send from, separated by semicolons."
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 #, fuzzy
@@ -5438,6 +5521,16 @@ msgid ""
 msgstr ""
 "Exportovat\n"
 "složku"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Export Account Settings"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Export Account Settings…"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/file.rs crates/ui-egui/src/backstage.rs
@@ -5726,7 +5819,7 @@ msgid "Fold the calendars of this group away"
 msgstr "Sbalit kalendáře této skupiny"
 
 #. interface, name, ribbon location
-#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
+#: crates/engine/src/cmd/calendar.rs crates/engine/src/cmd/calendar_opened.rs crates/engine/src/cmd/calendar_subscribed.rs crates/engine/src/cmd/folder.rs crates/engine/src/cmd/imported_dupes.rs crates/engine/src/cmd/mail.rs crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs crates/model/src/mailbox.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/menubar.rs
 #, fuzzy
 msgid "Folder"
 msgstr "Složka"
@@ -5776,7 +5869,7 @@ msgid "Folder Size…"
 msgstr "Velikost složky…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs
+#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Název složky"
@@ -6894,6 +6987,11 @@ msgid "Import"
 msgstr "Importovat"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import Account Settings…"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/files.rs
 #, fuzzy
 msgid "Import Calendar File"
@@ -6916,6 +7014,11 @@ msgstr "Importovat poštu"
 #, fuzzy
 msgid "Import Public Keys"
 msgstr "Importovat veřejné klíče"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import Selected"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -6970,6 +7073,11 @@ msgstr "Importovat klíč OpenPGP"
 #, fuzzy
 msgid "Import an OpenPGP key (.asc)…"
 msgstr "Importovat klíč OpenPGP (.asc)…"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Import local rules (disabled for review)"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/files.rs
@@ -7221,6 +7329,16 @@ msgid "Include diagnostics"
 msgstr "Připojit diagnostiku"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Include local rules for the selected accounts"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Include reading and editing preferences"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/backstage.rs
 #, fuzzy
 msgid "Include the original message when replying"
@@ -7351,6 +7469,11 @@ msgstr "Do vašich kontaktů v tomto počítači, každý označený jako import
 #, fuzzy
 msgid "Into your to-do list on this computer. Nothing is sent to anybody."
 msgstr "Do vašeho seznamu úkolů v tomto počítači. Nikomu se nic neodešle."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Invalid account, skipped"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -7720,6 +7843,11 @@ msgstr "Ponechat účet"
 #, fuzzy
 msgid "Keep data"
 msgstr "Ponechat data"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Keep existing account"
+msgstr ""
 
 #. command label, interface
 #: crates/ui-egui/src/lib.rs crates/ui-egui/src/server_sync.rs
@@ -8123,6 +8251,11 @@ msgstr "Načítám…"
 msgid "Local mailbox"
 msgstr "Místní poštovní schránka"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Local, IMAP and Microsoft accounts can be transferred."
+msgstr ""
+
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/forms.rs
 #, fuzzy
@@ -8366,6 +8499,11 @@ msgstr "Pošta, kalendář, lidé a úkoly, napsané od nuly v Rustu."
 #, fuzzy
 msgid "Mail, calendar, people and tasks, written from scratch in Rust. It runs natively on macOS, Windows, Linux and BSD, and in the browser."
 msgstr "Pošta, kalendář, lidé a úkoly, napsané od nuly v Rustu. Běží nativně v macOS, Windows, Linuxu a BSD i v prohlížeči."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Mail, passwords and sign-in tokens are kept out of the transfer."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/graph_switch.rs
@@ -9317,6 +9455,16 @@ msgid "Move Items"
 msgstr "Přesunout položky"
 
 #. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Move Original to Deleted Items"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Move Recurring Item"
@@ -9737,6 +9885,11 @@ msgstr "Nová poštovní schránka"
 #, fuzzy
 msgid "New Meeting"
 msgstr "Nová schůzka"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "New Reference Folder"
+msgstr ""
 
 #. command label, interface
 #: crates/engine/src/cmd/tasks.rs crates/ui-egui/src/forms.rs
@@ -10772,7 +10925,7 @@ msgid "Numbering"
 msgstr "Číslování"
 
 #. android, interface
-#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AboutPages.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarScreen.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TaskEditorScreen.kt crates/ui-egui/src/auto_replies.rs crates/ui-egui/src/calendar_sync.rs crates/ui-egui/src/check_names.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/move_items.rs crates/ui-egui/src/reminder_dialog.rs crates/ui-egui/src/send_later.rs crates/ui-egui/src/settings_notice.rs crates/ui-egui/src/software.rs crates/ui-egui/src/updates.rs
+#: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AboutPages.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/AccountDialogs.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarScreen.kt apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/TaskEditorScreen.kt crates/ui-egui/src/auto_replies.rs crates/ui-egui/src/calendar_sync.rs crates/ui-egui/src/check_names.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/merge_contacts.rs crates/ui-egui/src/move_items.rs crates/ui-egui/src/reminder_dialog.rs crates/ui-egui/src/send_later.rs crates/ui-egui/src/settings_notice.rs crates/ui-egui/src/settings_transfer.rs crates/ui-egui/src/software.rs crates/ui-egui/src/updates.rs
 #, fuzzy
 msgid "OK"
 msgstr "OK"
@@ -11195,6 +11348,11 @@ msgid "Open Recurring Item"
 msgstr "Otevřít opakovanou položku"
 
 #. command label
+#: crates/engine/src/cmd/reference_folder.rs
+msgid "Open Reference Folder"
+msgstr ""
+
+#. command label
 #: crates/ui-egui/src/lib.rs
 #, fuzzy
 msgid "Open Replies and Forwards in a New Window"
@@ -11452,11 +11610,21 @@ msgstr "Organizátor: váš vlastní kalendář"
 msgid "Organizer: {name}"
 msgstr "Organizátor: {name}"
 
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original folder: {folder}"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposerScreen.kt
 #, fuzzy
 msgid "Original message"
 msgstr "Původní zpráva"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Original messages will stay where they are."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
@@ -12285,6 +12453,16 @@ msgid "Reading Pane"
 msgstr "Podokno čtení"
 
 #. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Reading account settings…"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Reading and editing preferences imported"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs
 #, fuzzy
 msgid "Reading pane at the bottom"
@@ -12542,6 +12720,13 @@ msgstr ""
 "Odstranit\n"
 "přílohu"
 
+#. interface
+#: crates/ui-egui/src/ribbon.rs
+msgid ""
+"Remove\n"
+"Reference"
+msgstr ""
+
 #. command label, interface
 #: crates/engine/src/cmd/account.rs crates/ui-egui/src/dialogs.rs
 #, fuzzy
@@ -12625,6 +12810,11 @@ msgid "Remove Recurrence"
 msgstr "Odebrat opakování"
 
 #. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/mail_view.rs crates/ui-egui/src/nav/reference_folders.rs crates/ui-egui/src/reading.rs
+msgid "Remove Reference"
+msgstr ""
+
+#. command label, interface
 #: crates/engine/src/cmd/followup.rs crates/ui-egui/src/ribbon.rs
 #, fuzzy
 msgid "Remove Reminder"
@@ -12641,6 +12831,11 @@ msgstr "Odebrat sdílený kalendář"
 #, fuzzy
 msgid "Remove Shared Mailbox"
 msgstr "Odebrat sdílenou poštovní schránku"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+msgid "Remove Unavailable References"
+msgstr ""
 
 #. command label
 #: crates/ui-egui/src/lib.rs
@@ -12835,6 +13030,11 @@ msgstr "Nahradit"
 #, fuzzy
 msgid "Replace All"
 msgstr "Nahradit vše"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Replace reading and editing preferences"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/backstage.rs
@@ -13080,6 +13280,11 @@ msgstr "Obrátit pořadí"
 msgid "Review"
 msgstr "Revize"
 
+#. interface, name
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Review Account Settings"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/ews_setup.rs
 #, fuzzy
@@ -13161,6 +13366,11 @@ msgstr "Pravidla a kategorie"
 #, fuzzy
 msgid "Rules for"
 msgstr "Pravidla pro"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Rules with a missing destination or an existing name are skipped."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/rule_sync.rs
@@ -13405,6 +13615,11 @@ msgstr "Uložit soubor zprávy jako"
 #, fuzzy
 msgid "Save Signature"
 msgstr "Uložit podpis"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Save Transfer…"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/calendar_view.rs
@@ -14237,6 +14452,11 @@ msgid "Sending"
 msgstr "Odesílání"
 
 #. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Sending aliases"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/ews_mail.rs crates/ui-egui/src/inbox_pass.rs crates/ui-egui/src/jmap_mail.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/shared_mailboxes.rs
 #, fuzzy
 msgid "Sending and receiving…"
@@ -14514,6 +14734,11 @@ msgid ""
 msgstr ""
 "Zobrazit\n"
 "školení"
+
+#. interface
+#: crates/ui-egui/src/nav/reference_folders.rs
+msgid "Show All Accounts"
+msgstr ""
 
 #. command label, interface, ribbon
 #: crates/engine/src/cmd/calendar.rs crates/ui-egui/src/calendar_view.rs crates/ui-egui/src/forms.rs crates/ui-egui/src/ribbon.rs
@@ -15002,6 +15227,11 @@ msgstr "Chcete-li vidět, kdy jsou ostatní zaneprázdněni, přihlaste se pomoc
 #, fuzzy
 msgid "Sign-in cancelled"
 msgstr "Přihlášení zrušeno"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "Sign-in name: {login}"
+msgstr ""
 
 #. android, command label, ribbon
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsPages.kt crates/engine/src/cmd/compose.rs crates/ui-egui/src/ribbon.rs
@@ -16997,6 +17227,11 @@ msgid "The one this build came with"
 msgstr "Ten, se kterým toto sestavení přišlo"
 
 #. interface
+#: crates/ui-egui/src/files.rs crates/ui-egui/src/settings_transfer.rs
+msgid "The open mailbox changed. Start the transfer again."
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs.rs
 #, fuzzy
 msgid "The organizer can't be written to from this account."
@@ -17421,6 +17656,11 @@ msgstr "Soubor nastavení (ui.json) nešlo přečíst, takže bylo obnoveno výc
 #, fuzzy
 msgid "The settings file (ui.json) couldn't be read, so the default settings were restored. The old file was renamed {file}."
 msgstr "Soubor nastavení (ui.json) nešlo přečíst, takže bylo obnoveno výchozí nastavení. Starý soubor byl přejmenován na {file}."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "The settings file could not be read."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/account_setup/exchange.rs
@@ -20706,6 +20946,16 @@ msgid "a picture in a message is at most {mb} MB"
 msgstr "obrázek ve zprávě má nejvýše {mb} MB"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder already has that name"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "a reference folder needs a name"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/auto_replies.rs
 #, fuzzy
 msgid "a reply may be {most} characters long at most"
@@ -20861,6 +21111,11 @@ msgid "an account becomes an Exchange server account, or stops being one, only b
 msgstr "účet se stane účtem serveru Exchange, nebo jím přestane být, jen odebráním a novým přidáním"
 
 #. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "an account can have at most {n} sending aliases"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "an account can't be put before itself"
@@ -20942,6 +21197,11 @@ msgid "choose a time within a year"
 msgstr "zvolte čas do jednoho roku"
 
 #. what a command says
+#: crates/engine/src/cmd/compose.rs
+msgid "choose the From address in the compose window"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/mail.rs
 #, fuzzy
 msgid "close a conversation first: each of the 1,000 open has a message selected"
@@ -20959,6 +21219,11 @@ msgstr "shromážděno z pošty"
 msgid "comes once Google has reviewed MailCraft"
 msgstr "přijde, až Google MailCraft posoudí"
 
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "configure sending aliases in Account Settings"
+msgstr ""
+
 #. why a mail server couldn't be used
 #: crates/proto/src/lib.rs
 #, fuzzy
@@ -20970,6 +21235,16 @@ msgstr "problém s připojením: {reason}"
 #, fuzzy
 msgid "contact"
 msgstr "kontakt"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to a folder that is gone"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgid "copy its reference to {folder}"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/net/src/lib.rs
@@ -21628,6 +21903,11 @@ msgid "no such paragraph"
 msgstr "takový odstavec neexistuje"
 
 #. what a command says
+#: crates/engine/src/cmd/reference_folder.rs crates/engine/src/cmd/rules.rs
+msgid "no such reference folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs crates/engine/src/cmd/tasks/status.rs
 #, fuzzy
 msgid "no task with id {id}"
@@ -21794,6 +22074,11 @@ msgstr ""
 msgid "only your own calendars can be put in a message"
 msgstr "do zprávy lze vložit jen vaše vlastní kalendáře"
 
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/mail.rs
+msgid "open the source folder to delete a message permanently"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarEditor.kt
 #, fuzzy
@@ -21841,6 +22126,11 @@ msgstr "obrázky z webu se nestahují: obrázek uložte a přidejte ho ze soubor
 #, fuzzy
 msgid "readOnly"
 msgstr "jen pro čtení"
+
+#. name, what a command says
+#: crates/engine/src/cmd/rules.rs
+msgid "reference folders are kept on this computer"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
@@ -21895,6 +22185,11 @@ msgstr "nejprve vyberte úkol"
 #, fuzzy
 msgid "select an appointment first"
 msgstr "nejprve vyberte událost"
+
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "sending aliases need an IMAP account with an outgoing SMTP server"
+msgstr ""
 
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposeModel.kt
@@ -22467,6 +22762,16 @@ msgid "the network couldn't get there"
 msgstr "síť se tam nedostala"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is already in Deleted Items"
+msgstr ""
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the original message is no longer here"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "the parent folder belongs to another account"
@@ -22503,6 +22808,11 @@ msgid "the proposed end is not after the proposed start"
 msgstr "navržený konec není po navrženém začátku"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the reference folder is full"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox_followup.rs
 #, fuzzy
 msgid "the reminder time must be in the future"
@@ -22537,6 +22847,11 @@ msgstr "hledání nemůže hledat adresu tohoto odesílatele jako celou adresu"
 #, fuzzy
 msgid "the search involves no mailbox of a Microsoft account"
 msgstr "hledání se netýká žádné poštovní schránky účtu Microsoft"
+
+#. what a command says, why a mail server couldn't be used
+#: crates/engine/src/cmd/compose.rs crates/net/src/send.rs
+msgid "the selected sending alias isn't configured for this account"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs
@@ -22893,6 +23208,11 @@ msgid "the signature was edited as text: its copy is what goes out"
 msgstr "podpis byl upraven jako text: odesílá se jeho kopie"
 
 #. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "the source account has no Deleted Items folder"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/tasks.rs
 #, fuzzy
 msgid "the task is gone"
@@ -22980,6 +23300,11 @@ msgstr "kalendářů je příliš mnoho na to, aby se pro tento soubor vytvořil
 #, fuzzy
 msgid "there are too many categories"
 msgstr "kategorií je příliš mnoho"
+
+#. what a command says
+#: crates/model/src/reference_folder.rs
+msgid "there are too many reference folders"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs
@@ -23239,6 +23564,11 @@ msgstr "tato řada má příliš mnoho zrušených dnů"
 msgid "this series has too many changed days"
 msgstr "tato řada má příliš mnoho změněných dnů"
 
+#. why a command can't run
+#: crates/engine/src/cmd/search_server.rs
+msgid "this view searches the mail already on this computer"
+msgstr ""
+
 #. interface
 #: crates/ui-egui/src/forms.rs
 #, fuzzy
@@ -23277,6 +23607,11 @@ msgstr "zadejte adresu, například nekdo@example.org, nebo doménu, například
 #, fuzzy
 msgid "unexpected server response: {reason}"
 msgstr "neočekávaná odpověď serveru: {reason}"
+
+#. what a command says, why a command can't run
+#: crates/engine/src/cmd/compose.rs
+msgid "use Move Original to Deleted Items in a reference folder"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/security.rs
@@ -24107,6 +24442,14 @@ msgstr[0] "{n} účet"
 msgstr[1] "{n} účty"
 msgstr[2] "{n} účtů"
 
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} account added"
+msgid_plural "{n} accounts added"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/SettingsSummaries.kt
 #, fuzzy
@@ -24300,6 +24643,14 @@ msgid_plural "{n} downloaded pictures are kept on this phone ({size})."
 msgstr[0] "V tomto telefonu je uchován {n} stažený obrázek ({size})."
 msgstr[1] "V tomto telefonu jsou uchovány {n} stažené obrázky ({size})."
 msgstr[2] "V tomto telefonu je uchováno {n} stažených obrázků ({size})."
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} entry skipped"
+msgid_plural "{n} entries skipped"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #. android, interface
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/CalendarSpeech.kt crates/ui-egui/src/backstage.rs crates/ui-egui/src/lib.rs
@@ -24979,6 +25330,14 @@ msgid_plural "{n} results in {scope}"
 msgstr[0] "{n} výsledek v {scope}"
 msgstr[1] "{n} výsledky v {scope}"
 msgstr[2] "{n} výsledků v {scope}"
+
+#. interface
+#: crates/ui-egui/src/settings_transfer.rs
+msgid "{n} rule added"
+msgid_plural "{n} rules added"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs

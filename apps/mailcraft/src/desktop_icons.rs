@@ -4,8 +4,8 @@
 //!
 //! A copy put in place by hand (an AppImage linked from `~/.local/bin`, say) often comes with a
 //! launcher and icons written into the owner's own data folder (`$XDG_DATA_HOME`, else
-//! `~/.local/share`): `applications/io.github.billsecond.mailcraft.desktop` and
-//! `icons/hicolor/<size>/apps/io.github.billsecond.mailcraft.png`, where the desktop's panel looks
+//! `~/.local/share`): `applications/io.github.npdia.mailcraft.desktop` and
+//! `icons/hicolor/<size>/apps/io.github.npdia.mailcraft.png`, where the desktop's panel looks
 //! for the icon of the app id. An update replaces the program and not those, so the panel went
 //! on showing the old icon. At every start ([`refresh`]), when the launcher is there and an icon
 //! there differs from the one this program carries, each icon file that is there is written anew
@@ -20,7 +20,7 @@ use std::io::{self, Write as _};
 use std::path::{Component, Path, PathBuf};
 
 /// The application id the desktop knows MailCraft by.
-const APP_ID: &str = "io.github.billsecond.mailcraft";
+const APP_ID: &str = crate::APP_ID;
 
 /// The icons this program carries: the folder under `icons/hicolor` each goes in, its extension
 /// and its bytes.

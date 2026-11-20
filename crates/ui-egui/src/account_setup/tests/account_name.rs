@@ -112,3 +112,15 @@ fn the_shared_mailbox_page_has_the_name_and_nothing_of_a_sign_in() {
         assert_eq!(h.state().session.mailbox.account(shared).unwrap().name, "Support");
     }
 }
+
+#[test]
+fn send_alias_settings_are_saved_on_the_existing_account() {
+    let mut a = app(true);
+    let id = imap_account(&mut a);
+    let count = a.session.mailbox.accounts.len();
+    let mut settings = AccountSetup::open(&a, &json!({"id": id})).unwrap();
+    settings.send_aliases = Some("support@lumen.example; desk@lumen.example".into());
+    assert!(settings.act(&mut a, Action::Go));
+    assert_eq!(a.session.mailbox.accounts.len(), count);
+    assert_eq!(a.session.mailbox.account(id).unwrap().send_aliases, ["support@lumen.example", "desk@lumen.example"]);
+}

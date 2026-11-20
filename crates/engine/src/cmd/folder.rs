@@ -316,6 +316,7 @@ fn select(s: &mut Session, v: &Value) -> CmdResult {
         s.sel.messages.clear();
     }
     // A search belongs to the folder it was typed in.
+    s.view.all_mail_accounts = None;
     s.view.search.clear();
     // From the counts the window has anyway, not two walks over every message.
     let counts = s.folder_counts();

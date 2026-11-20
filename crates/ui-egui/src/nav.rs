@@ -16,6 +16,10 @@ use crate::favorites_sync::Note;
 use crate::theme::{Tokens, bold, paint_clipped, regular};
 use crate::{MailApp, icons};
 
+#[cfg(not(target_arch = "wasm32"))]
+#[path = "nav/reference_folders.rs"]
+pub(crate) mod reference_folders;
+
 /// The module bar's width, and the height each module takes in it.
 const RAIL_W: f32 = 48.0;
 const RAIL_PITCH: f32 = 48.0;
@@ -864,6 +868,8 @@ pub fn folder_pane(app: &mut MailApp, ui: &mut Ui) {
         ui.spacing_mut().item_spacing = vec2(0.0, 0.0);
         pane_top(app, ui, &t);
         egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            #[cfg(not(target_arch = "wasm32"))]
+            reference_folders::pane(app, ui);
             // (Counted once per change to the mailbox, not at every frame: `Session::folder_counts`.)
             let counts = app.session.folder_counts();
             let count = |f: &Folder| {
@@ -1057,6 +1063,14 @@ pub(crate) fn result_folder_label(mb: &Mailbox, f: &Folder) -> String {
         }
         _ => folder_label(mb, f),
     }
+}
+
+/// A collection can hold a message from any account or folder. Always give both names.
+pub(crate) fn message_origin(mb: &Mailbox, message: &mailcraft_model::Message) -> String {
+    let path = folder_path(mb, message.folder);
+    let Some(account) = mb.account(message.account) else { return path };
+    let name = if account.name.trim().is_empty() { account.email.as_str() } else { account.name.as_str() };
+    crate::i18n::fmt(tl!("{folder} - {mailbox}"), &[("folder", &path), ("mailbox", name)])
 }
 
 /// What an account's heading in the folder pane says: its name, and for a shared mailbox

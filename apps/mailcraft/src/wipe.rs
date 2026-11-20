@@ -5,12 +5,11 @@
 //! entries first (`mailcraft_ui_egui::data_removal`); this is the host's part, the folders.
 //!
 //! ```text
-//! <settings>/                   (mailcraft_control_key::settings_dir: %APPDATA%\MailCraft,
-//!                                ~/Library/Application Support/MailCraft, ~/.config/mailcraft)
+//! <settings>/                   the fork’s profile (`mailcraft_control_key::settings_dir`)
 //!     mailbox.mailcraft…        the mailbox, its content folder, its word index
 //!     ui.json, logs/, pictures/ the settings, the logs, the downloaded pictures
 //!     updates/ …                the update's downloads and the version kept to go back to
-//! <cache>/MailCraft/Attachments/    the attachments opened (`opened_files::base`)
+//! <cache>/MailCraft_NPDIA_Custom/Attachments/  the attachments opened (`opened_files::base`)
 //! ```
 //!
 //! An installed copy and a portable one keep their data in the same places, so one function
@@ -23,12 +22,12 @@
 //!   message, not a setting. A mailbox file the owner keeps elsewhere (File › Open, `--mailbox`)
 //!   is theirs: it is left, and said so.
 //! - **Each root is checked before anything in it goes:** absolute, called what it must be
-//!   called (`mailcraft`/`MailCraft`, `Attachments`), a real folder and not a link. A root that
+//!   called (the fork’s profile name or `Attachments`), a real folder and not a link. A root that
 //!   fails any of this is reported and left entirely alone.
 //! - **Never through a link.** Every entry is looked at with `symlink_metadata`; a link (file or
 //!   folder) is itself unlinked and what it points at is never opened, listed or removed. Paths
 //!   are only ever made by joining a name `read_dir` gave onto a folder already inside the root
-//!   (a lexical guard repeats that). Links *above* a root (`~/.cache/MailCraft` linked to another
+//!   (a lexical guard repeats that). Links *above* a root (the cache parent linked to another
 //!   disk) are followed, as the program follows them everywhere; a root that is itself a link is
 //!   left alone. A folder swapped for a link in the instant between looking and listing is not
 //!   guarded against: that takes someone already able to write the owner's own data.
@@ -55,7 +54,7 @@ const MAX_ENTRIES: usize = 20_000_000;
 #[derive(Clone, Debug)]
 pub struct Root {
     pub path: PathBuf,
-    /// The last component, compared without regard to case (`%APPDATA%\MailCraft`).
+    /// The last component, compared without regard to case.
     pub name: &'static str,
     /// Remove the folder itself too, not only what is in it.
     pub itself: bool,
@@ -66,7 +65,7 @@ pub struct Root {
 pub struct Roots {
     pub list: Vec<Root>,
     /// Folders removed after the roots, only when they are empty by then (`remove_dir` refuses
-    /// otherwise): the folder opened attachments sit in is `<cache>/MailCraft/Attachments`.
+    /// otherwise). This includes the fork’s cache parent of the opened attachments.
     pub parents: Vec<Root>,
     /// The settings folder, to tell whether the open mailbox is inside it.
     pub settings: Option<PathBuf>,
@@ -77,16 +76,12 @@ impl Roots {
     pub fn of_this_program() -> Roots {
         let mut roots = Roots::default();
         if let Some(settings) = mailcraft_control_key::settings_dir() {
-            roots.list.push(Root {
-                path: settings.clone(),
-                name: if cfg!(any(windows, target_os = "macos")) { "MailCraft" } else { "mailcraft" },
-                itself: true,
-            });
+            roots.list.push(Root { path: settings.clone(), name: mailcraft_control_key::SETTINGS_NAME, itself: true });
             roots.settings = Some(settings);
         }
         if let Some(attachments) = crate::opened_files::base() {
             if let Some(cache) = attachments.parent() {
-                roots.parents.push(Root { path: cache.to_path_buf(), name: "MailCraft", itself: true });
+                roots.parents.push(Root { path: cache.to_path_buf(), name: crate::opened_files::CACHE_NAME, itself: true });
             }
             roots.list.push(Root { path: attachments, name: "Attachments", itself: true });
         }

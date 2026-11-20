@@ -2676,3 +2676,50 @@ mod gmail_labels_sync;
 
 #[path = "protected_sync_tests.rs"]
 mod protected_sync;
+
+#[test]
+fn send_alias_uses_the_original_sign_in_and_sent_folder_and_never_retries_as_primary() {
+    let imap = Fake::imap(imap_world());
+    let smtp = Fake::smtp(smtp_world());
+    let mut account = account(Some(&imap), Some(&smtp));
+    let alias = "support@example.org";
+    account.send_aliases = vec![alias.into()];
+    let message = Message { from: Address::new("Ada Lovelace", alias), send_as_alias: true, message_id: "alias@example.org".into(), ..hello() };
+    let mut sending = request(account.clone(), local_folders());
+    sending.outbox = vec![message.clone()];
+    let result = sync(&sending);
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert_eq!(result.sent, [message.id]);
+    assert_eq!(result.filed, [message.id]);
+    {
+        let world = smtp.world();
+        assert_eq!(world.sign_ins, 1);
+        assert_eq!(world.delivered.len(), 1);
+        assert_eq!(world.delivered[0].from, alias);
+        assert_eq!(mailcraft_mime_model::parse(world.delivered[0].data.as_bytes()).from.email, alias);
+    }
+    {
+        let world = imap.world();
+        let sent = world.mailboxes.iter().find(|mailbox| mailbox.raw == "Sent Items").unwrap();
+        assert!(sent.messages.iter().any(|message| mailcraft_mime_model::parse(&message.body).from.email == alias));
+    }
+
+    smtp.world().refuse_from = vec![alias.into()];
+    let error = send(&account, PASSWORD, &message).unwrap_err();
+    assert!(error.to_string().contains("sender address is not allowed"));
+    let world = smtp.world();
+    assert_eq!(world.delivered.len(), 1);
+    assert!(!world.log.iter().any(|line| line.contains("MAIL FROM:<ada@example.org>")));
+    let connections = world.connections;
+    drop(world);
+
+    account.send_aliases.clear();
+    assert!(matches!(send(&account, PASSWORD, &message), Err(NetError::Config(_))));
+    assert_eq!(smtp.world().connections, connections, "an unknown alias never reaches SMTP");
+
+    let primary_message = Message { from: account.address(), ..hello() };
+    assert_eq!(send(&account, PASSWORD, &primary_message), Ok(()));
+    let world = smtp.world();
+    assert_eq!(world.delivered[1].from, "ada@example.org");
+    assert_eq!(mailcraft_mime_model::parse(world.delivered[1].data.as_bytes()).from.email, "ada@example.org");
+}

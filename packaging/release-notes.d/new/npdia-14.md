@@ -1,0 +1,1 @@
+- MailCraft_NPDIA_Custom has its own local profile and update channel. Windows installs signed fork updates using the registered installer and retains a signed setup for rollback after subsequent updates ([#14](https://github.com/NPDIA/mailcraft/issues/14)).

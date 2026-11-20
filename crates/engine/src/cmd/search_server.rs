@@ -168,6 +168,9 @@ pub fn mailboxes_for(s: &Session) -> Vec<(Id, String)> {
 
 /// Why More results on the server isn't offered for the search in view, when it isn't.
 pub fn offered_reason(s: &Session) -> Option<&'static str> {
+    if s.all_mail_accounts().is_some() || s.reference_folder().is_some() {
+        return Some("this view searches the mail already on this computer");
+    }
     let query = Query::parse(&s.view.search);
     if query.is_empty() {
         return Some("there is no search");

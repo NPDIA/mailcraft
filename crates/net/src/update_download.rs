@@ -190,6 +190,20 @@ pub fn verify(sums: &[u8], signature: &[u8], keys: &[[u8; 32]]) -> Result<Sums, 
 pub struct Downloaded {
     pub path: PathBuf,
     pub sha256: [u8; 32],
+    pub receipt: Receipt,
+}
+
+/// The release’s signature and manifest, rechecked when a Windows installer is run later.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Receipt {
+    pub sums: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+impl Receipt {
+    pub fn digest(&self, name: &str, keys: &[[u8; 32]]) -> Result<[u8; 32], DownloadError> {
+        verify(&self.sums, &self.signature, keys)?.digest(name).ok_or_else(|| refused("the signed list has no checksum for the file"))
+    }
 }
 
 /// Where and how files may be downloaded from.
@@ -211,6 +225,9 @@ fn on_github(url: &Url) -> bool {
 /// earlier try stopped; one already there and checked is not downloaded again. Every other file
 /// in `dir` is deleted. Blocks for as long as the download takes; call it on a background thread.
 pub fn download(release: &Release, name: &str, dir: &Path) -> Result<Downloaded, DownloadError> {
+    if !crate::update::is_fork_release(release) {
+        return Err(refused("the release is not from the fork"));
+    }
     let reach = Reach {
         allowed: &on_github,
         large: StreamPatience { connect: Duration::from_secs(10), idle: Duration::from_secs(30), total: Duration::from_secs(3_600) },
@@ -242,9 +259,8 @@ pub(crate) fn download_with(release: &Release, name: &str, dir: &Path, keys: &[[
     if asset.size > MAX_DOWNLOAD {
         return Err(refused("the file is larger than an update may be"));
     }
-    let sums_bytes = small(sums, MAX_SUMS, reach)?;
-    let signature_bytes = small(signature, MAX_SIGNATURE, reach)?;
-    let digest = verify(&sums_bytes, &signature_bytes, keys)?.digest(name).ok_or_else(|| refused("the signed list has no checksum for the file"))?;
+    let receipt = Receipt { sums: small(sums, MAX_SUMS, reach)?, signature: small(signature, MAX_SIGNATURE, reach)? };
+    let digest = receipt.digest(name, keys)?;
 
     fs::create_dir_all(dir).map_err(|e| failed(&format!("the folder for updates couldn't be made: {}", e.kind())))?;
     let done = dir.join(name);
@@ -252,7 +268,7 @@ pub(crate) fn download_with(release: &Release, name: &str, dir: &Path, keys: &[[
     tidy(dir, &[done.as_path(), part.as_path()]);
     if done.is_file() {
         if sha256(&done).is_some_and(|d| d == digest) {
-            return Ok(Downloaded { path: done, sha256: digest });
+            return Ok(Downloaded { path: done, sha256: digest, receipt });
         }
         let _ = fs::remove_file(&done);
     }
@@ -269,7 +285,7 @@ pub(crate) fn download_with(release: &Release, name: &str, dir: &Path, keys: &[[
         return Err(refused("the file's checksum isn't the one the signed list gives"));
     }
     fs::rename(&part, &done).map_err(|e| failed(&format!("the download couldn't be put in place: {}", e.kind())))?;
-    Ok(Downloaded { path: done, sha256: digest })
+    Ok(Downloaded { path: done, sha256: digest, receipt })
 }
 
 /// Delete every file in `dir` but `keep`: what is left of an older version's download.

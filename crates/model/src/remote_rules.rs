@@ -97,7 +97,7 @@ impl RemoteRule {
         let mut actions = Vec::new();
         for action in std::mem::take(&mut self.actions).into_iter().take(MAX_PARTS) {
             match action {
-                Action::MoveTo(_) => {}
+                Action::MoveTo(_) | Action::ReferenceTo(_) => {}
                 Action::Categorize(c) => match clean_name(&c) {
                     Some(name) if c.trim().chars().count() <= MAX_NAME => actions.push(Action::Categorize(name)),
                     _ => note(CUT_CATEGORY),

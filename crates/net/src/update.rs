@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: MailCraft contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! Whether a new version of MailCraft is out: one question to GitHub's API about the newest
-//! release of the repository the build names (`CARGO_PKG_REPOSITORY`), and nothing else.
+//! release of the NPDIA fork, and nothing else.
 //!
 //! The request is a GET over HTTPS with the crate's fixed `User-Agent` (`MailCraft`, no version)
 //! and an `Accept` header: no account, address, mailbox detail, identifier or version of this
@@ -10,9 +10,10 @@
 //! that updates itself hands it to [`crate::update_download`].
 //!
 //! The answer is as hostile as any server's: at most 512 KB, ten seconds, no redirects. Its
-//! `tag_name` is read strictly as a version; a pre-release is passed over unless the one asking
-//! runs a pre-release; its `html_url` is taken only when it is this repository's page for that
-//! tag (else the page is made from the tag); and of its notes only whether they name a
+//! `tag_name` is read strictly as a version. Pre-release builds check a bounded list of this
+//! repository's published releases, including pre-releases. Stable builds ask for the latest
+//! release and take its `html_url` only when it is this repository's page for that tag, making
+//! it from the tag otherwise. Of the release notes, only whether they name a
 //! published security advisory (`GHSA-xxxx-xxxx-xxxx`, `RUSTSEC-yyyy-nnnn`) is kept. No text of
 //! the release is handed on or logged, and an error says what went wrong without the address.
 
@@ -24,16 +25,20 @@ use serde_json::Value;
 use crate::NetError;
 use crate::http::{self, Request, Url};
 
-/// The public keys of MailCraft's release signature, in base64 (32 bytes each): the key the
-/// release workflow signs `SHA256SUMS.txt` with, and a spare whose private half is kept offline
-/// until the first is lost or stolen. A release signed by either is one of the project's; a copy
-/// that updates itself takes nothing that isn't (`update_download`). An empty one is no key:
-/// with neither, nothing is ever downloaded. `cargo xtask release-key new` prints both
-/// (docs/releasing.md).
-pub const RELEASE_KEYS: [&str; 2] = ["Mu5RF5oJpFhDGfa5wpgznC39tDC8vbUbyNkiAMdluPQ=", "XV6WRgW06/mGhZCHhFVKMIEZDmLevQduZPLSj/UW5zI="];
+/// Public Ed25519 release keys of the fork, base64-encoded. Release builds set either
+/// or both values at compile time. A build without a valid fork key cannot install updates.
+pub const RELEASE_KEYS: [&str; 2] =
+    [key_or_empty(option_env!("MAILCRAFT_FORK_RELEASE_PUBLIC_KEY")), key_or_empty(option_env!("MAILCRAFT_FORK_RELEASE_PUBLIC_KEY_SPARE"))];
 
-/// The repository this build came from: `https://github.com/{owner}/{repo}`.
-pub const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+const fn key_or_empty(key: Option<&'static str>) -> &'static str {
+    match key {
+        Some(key) => key,
+        None => "",
+    }
+}
+
+/// This application checks the fork's releases even when built from a local checkout.
+pub const REPOSITORY: &str = mailcraft_model::update::RELEASE_REPOSITORY;
 /// GitHub's API.
 const API: &str = "https://api.github.com";
 /// How long connecting may take, and so may the answer: ten seconds together at most.
@@ -43,6 +48,8 @@ const PATIENCE: Duration = Duration::from_secs(5);
 const MAX_ANSWER: usize = 512 * 1024;
 /// Longest owner or repository name taken from the build.
 const MAX_NAME: usize = 100;
+/// Most recent releases considered when a pre-release build checks for an update.
+const MAX_RELEASES: usize = 10;
 /// Most files of a release looked at (0.4.2 had 21).
 const MAX_ASSETS: usize = 200;
 
@@ -57,8 +64,10 @@ pub fn latest(pre_releases: bool) -> Result<Release, NetError> {
 /// about `repository` (`https://github.com/{owner}/{repo}`).
 pub fn latest_at(api: &str, repository: &str, pre_releases: bool) -> Result<Release, NetError> {
     let (owner, repo) = owner_and_repo(repository).ok_or_else(|| said("this build names no repository on GitHub"))?;
-    let url = Url::parse(&format!("{}/repos/{owner}/{repo}/releases/latest", api.trim().trim_end_matches('/')))
-        .map_err(|_| said("the address to ask isn't one"))?;
+    let base = format!("{}/repos/{owner}/{repo}/releases", api.trim().trim_end_matches('/'));
+    // GitHub's /latest endpoint excludes pre-releases.
+    let path = if pre_releases { format!("{base}?per_page={MAX_RELEASES}") } else { format!("{base}/latest") };
+    let url = Url::parse(&path).map_err(|_| said("the address to ask isn't one"))?;
     let headers = [("Accept", "application/vnd.github+json")];
     let reply = http::request(&url, &Request { method: "GET", headers: &headers, body: None, patience: PATIENCE, max_body: MAX_ANSWER })
         .map_err(|e| without_address(&e))?;
@@ -99,20 +108,41 @@ fn owner_and_repo(repository: &str) -> Option<(&str, &str)> {
     (name(owner) && name(repo)).then_some((owner, repo))
 }
 
-/// The release in GitHub's answer, when it is one this build could run.
+/// The greatest release version in GitHub's answer that this build can run.
 fn release(body: &[u8], owner: &str, repo: &str, pre_releases: bool) -> Result<Release, NetError> {
     let junk = || said("GitHub's answer wasn't one");
     let json: Value = serde_json::from_slice(body).map_err(|_| junk())?;
+    if !pre_releases {
+        return release_entry(&json, owner, repo, false);
+    }
+    let entries = json.as_array().ok_or_else(junk)?;
+    entries
+        .iter()
+        .take(MAX_RELEASES)
+        .filter(|entry| entry.get("draft").and_then(Value::as_bool) == Some(false))
+        .filter_map(|entry| release_entry(entry, owner, repo, true).ok())
+        .reduce(|latest, found| if found.version.is_newer_than(&latest.version) { found } else { latest })
+        .ok_or_else(|| said("GitHub has no release of MailCraft"))
+}
+
+fn release_entry(json: &Value, owner: &str, repo: &str, from_list: bool) -> Result<Release, NetError> {
+    let junk = || said("GitHub's answer wasn't one");
     let tag = json.get("tag_name").and_then(Value::as_str).ok_or_else(junk)?;
     let version = Version::parse(tag).ok_or_else(junk)?;
     let marked = json.get("prerelease").and_then(Value::as_bool).unwrap_or(false);
-    if (marked || version.is_pre_release()) && !pre_releases {
+    if (marked || version.is_pre_release()) && !from_list {
         return Err(said("GitHub's newest release is a pre-release"));
     }
     // The tag has been read as a version: it holds nothing that could leave the address.
     let page = format!("https://github.com/{owner}/{repo}/releases/tag/{tag}");
     let given = json.get("html_url").and_then(Value::as_str).unwrap_or_default();
-    let page = if is_release_page(given, owner, repo, tag) { given.to_string() } else { page };
+    let page = if is_release_page(given, owner, repo, tag) {
+        given.to_string()
+    } else if from_list {
+        return Err(junk());
+    } else {
+        page
+    };
     let security = json.get("body").and_then(Value::as_str).is_some_and(names_an_advisory);
     let assets = json.get("assets").and_then(Value::as_array).map(|list| assets(list, owner, repo, tag)).unwrap_or_default();
     Ok(Release { version, page, security, assets })
@@ -148,6 +178,16 @@ fn is_download_address(given: &str, owner: &str, repo: &str, tag: &str, name: &s
     let parts: Vec<&str> = rest.splitn(6, '/').collect();
     matches!(parts.as_slice(), [o, r, "releases", "download", t, n]
         if o.eq_ignore_ascii_case(owner) && r.eq_ignore_ascii_case(repo) && *t == tag && *n == name)
+}
+
+/// Whether this release and each of its initial download URLs belong to the fork.
+pub(super) fn is_fork_release(release: &Release) -> bool {
+    let Some((owner, repo)) = owner_and_repo(REPOSITORY) else { return false };
+    let version = release.version.to_string();
+    [version.clone(), format!("v{version}")].iter().any(|tag| {
+        is_release_page(&release.page, owner, repo, tag)
+            && release.assets.iter().all(|asset| is_download_address(&asset.url, owner, repo, tag, &asset.name))
+    })
 }
 
 /// Whether `given` is the page of release `tag` of `owner`/`repo`: the owner and the repository
@@ -261,8 +301,37 @@ mod tests {
         for release in [marked, release_of("v0.9.0-beta.1")] {
             let server = FakeHttp::answering(answer(&release));
             assert_eq!(config(ask(&server, false)), "GitHub's newest release is a pre-release");
+            let server = FakeHttp::answering(answer(&Value::Array(vec![release])));
             assert!(ask(&server, true).is_ok());
         }
+    }
+
+    #[test]
+    fn pre_release_checks_choose_the_greatest_published_fork_version_in_the_bounded_list() {
+        let fork_release = |tag: &str| {
+            let mut release = release_of(tag);
+            release["html_url"] = serde_json::json!(format!("{REPOSITORY}/releases/tag/{tag}"));
+            release
+        };
+        let mut draft = fork_release("v80.0.0");
+        draft["draft"] = Value::Bool(true);
+        let mut chosen = fork_release("v0.13.9-rc.2");
+        chosen["prerelease"] = Value::Bool(true);
+        chosen["assets"] = serde_json::json!([{
+            "name": "MailCraft_NPDIA_Custom-0.13.9-rc.2-windows-x64.exe",
+            "size": 42,
+            "browser_download_url": format!("{REPOSITORY}/releases/download/v0.13.9-rc.2/MailCraft_NPDIA_Custom-0.13.9-rc.2-windows-x64.exe")
+        }]);
+        let mut list = vec![fork_release("v0.13.8"), draft, release_of("v90.0.0"), chosen, fork_release("v0.13.9-rc.1")];
+        list.resize(MAX_RELEASES, Value::Null);
+        list.push(fork_release("v99.0.0"));
+        let server = FakeHttp::answering(answer(&Value::Array(list)));
+        let got = latest_at(&server.url(""), REPOSITORY, true).unwrap();
+        assert_eq!(got.version, Version::parse("0.13.9-rc.2").unwrap());
+        assert_eq!(got.assets.len(), 1);
+        assert!(is_fork_release(&got));
+        assert_eq!(server.asked(), 1);
+        assert_eq!(server.request(0).lines().next(), Some(format!("GET /repos/NPDIA/mailcraft/releases?per_page={MAX_RELEASES} HTTP/1.1").as_str()));
     }
 
     #[test]
@@ -450,10 +519,30 @@ mod tests {
     }
 
     #[test]
-    fn the_shipped_release_keys_are_keys() {
-        for key in RELEASE_KEYS {
-            assert!(mailcraft_charset::base64::STANDARD.decode(key).is_ok_and(|k| k.len() == 32), "{key}");
+    fn the_channel_is_the_fork_and_configured_keys_are_valid() {
+        assert_eq!(owner_and_repo(REPOSITORY), Some(("NPDIA", "mailcraft")));
+        for key in RELEASE_KEYS.into_iter().filter(|key| !key.trim().is_empty()) {
+            assert!(mailcraft_charset::base64::STANDARD.decode(key.trim()).is_ok_and(|k| k.len() == 32));
         }
+    }
+
+    #[test]
+    fn an_upstream_or_mixed_channel_release_cannot_be_downloaded() {
+        let mut release = Release {
+            version: Version::parse("v0.13.8").unwrap(),
+            page: "https://github.com/NPDIA/mailcraft/releases/tag/v0.13.8".into(),
+            security: false,
+            assets: vec![Asset {
+                name: "test.exe".into(),
+                size: 20,
+                url: "https://github.com/NPDIA/mailcraft/releases/download/v0.13.8/test.exe".into(),
+            }],
+        };
+        assert!(is_fork_release(&release));
+        release.assets[0].url = "https://github.com/UCS-Care-Group/mailcraft/releases/download/v0.13.8/test.exe".into();
+        assert!(!is_fork_release(&release));
+        release.page = "https://github.com/UCS-Care-Group/mailcraft/releases/tag/v0.13.8".into();
+        assert!(!is_fork_release(&release));
     }
 
     #[test]
@@ -484,8 +573,9 @@ mod tests {
         #[test]
         fn arbitrary_answers_never_panic(bytes in proptest::collection::vec(any::<u8>(), 0..400), tag in "\\PC{0,20}", notes in "\\PC{0,80}", url in "\\PC{0,80}") {
             let _ = release(&bytes, "o", "r", false);
+            let _ = release(&bytes, "o", "r", true);
             let json = serde_json::json!({"tag_name": tag, "body": notes, "html_url": url, "prerelease": false});
-            if let Ok(found) = release(json.to_string().as_bytes(), "o", "r", true) {
+            if let Ok(found) = release_entry(&json, "o", "r", false) {
                 prop_assert!(found.page.starts_with("https://github.com/"));
             }
             let _ = names_an_advisory(&notes);

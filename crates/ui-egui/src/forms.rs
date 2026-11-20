@@ -4523,6 +4523,7 @@ pub(crate) mod rules {
     pub enum Do {
         #[default]
         Move,
+        Reference,
         Categorize,
         Flag,
         MarkRead,
@@ -4531,11 +4532,12 @@ pub(crate) mod rules {
     }
 
     impl Do {
-        const ALL: [Do; 6] = [Do::Move, Do::Categorize, Do::Flag, Do::MarkRead, Do::SetImportance, Do::Delete];
+        const ALL: [Do; 7] = [Do::Move, Do::Reference, Do::Categorize, Do::Flag, Do::MarkRead, Do::SetImportance, Do::Delete];
 
         fn label(self) -> &'static str {
             match self {
                 Do::Move => "Move to folder",
+                Do::Reference => tl_later!("Copy reference to folder"),
                 Do::Categorize => "Categorize",
                 Do::Flag => "Flag",
                 Do::MarkRead => "Mark as read",
@@ -4657,6 +4659,10 @@ pub(crate) mod rules {
                     format!("move it to {} - {who}", crate::nav::folder_path(mb, *f))
                 }
                 Action::MoveTo(_) => "move it to a folder that is gone".to_string(),
+                Action::ReferenceTo(id) => mb.reference_folders.get(id).map_or_else(
+                    || tl!("copy its reference to a folder that is gone").to_string(),
+                    |folder| crate::i18n::fmt(tl!("copy its reference to {folder}"), &[("folder", &folder.name)]),
+                ),
                 other => other.describe(),
             })
             .collect::<Vec<_>>()
@@ -4814,6 +4820,7 @@ pub(crate) mod rules {
         then_run: bool,
         /// The folders a move can go to: id and path.
         folders: Vec<(Id, String)>,
+        reference_folders: Vec<(Id, String)>,
         /// The folder and category a fresh action starts with.
         first_folder: Id,
         first_category: String,
@@ -4866,10 +4873,11 @@ pub(crate) mod rules {
         fn choose(&mut self, mb: &Mailbox, account: Id) {
             self.account = account;
             self.folders = move_choices(mb, account);
+            self.reference_folders = mb.reference_folders.iter().map(|(&id, folder)| (id, folder.name.clone())).collect();
             self.first_folder = mb.folder_of_kind(account, FolderKind::Archive).or(self.folders.first().map(|f| f.0)).unwrap_or(0);
             let (folders, first) = (&self.folders, self.first_folder);
             for a in &mut self.acts {
-                if !folders.iter().any(|f| f.0 == a.folder) {
+                if a.kind == Do::Move && !folders.iter().any(|f| f.0 == a.folder) {
                     a.folder = first;
                 }
             }
@@ -4911,6 +4919,7 @@ pub(crate) mod rules {
                 .iter()
                 .map(|a| match a.kind {
                     Do::Move => json!({"type": "moveTo", "value": a.folder}),
+                    Do::Reference => json!({"type": "referenceTo", "value": a.folder}),
                     Do::Categorize => json!({"type": "categorize", "value": a.category}),
                     Do::Flag => json!({"type": "flag"}),
                     Do::MarkRead => json!({"type": "markRead"}),
@@ -4933,7 +4942,8 @@ pub(crate) mod rules {
         fn ready(&self) -> bool {
             let conds = self.conds.iter().all(|c| !c.kind.takes_text() || !c.text.trim().is_empty());
             let acts = self.acts.iter().all(|a| match a.kind {
-                Do::Move => a.folder != 0,
+                Do::Move => self.folders.iter().any(|(id, _)| *id == a.folder),
+                Do::Reference => self.reference_folders.iter().any(|(id, _)| *id == a.folder),
                 Do::Categorize => !a.category.trim().is_empty(),
                 _ => true,
             });
@@ -5143,18 +5153,27 @@ pub(crate) mod rules {
             let mut drop_act = None;
             let many = self.acts.len() > 1;
             let folders = &self.folders;
+            let references = &self.reference_folders;
             for (i, a) in self.acts.iter_mut().enumerate() {
                 row(ui, if i == 0 { tl!("Do") } else { tl!("and") }, |ui| {
                     egui::ComboBox::from_id_salt(("do", i)).width(150.0).selected_text(tl!(a.kind.label())).show_ui(ui, |ui| {
                         for kind in Do::ALL {
+                            if kind == Do::Reference && references.is_empty() {
+                                continue;
+                            }
                             if ui.selectable_label(kind == a.kind, tl!(kind.label())).clicked() {
                                 a.kind = kind;
+                                let choices = if kind == Do::Reference { references } else { folders };
+                                if matches!(kind, Do::Move | Do::Reference) && !choices.iter().any(|(id, _)| *id == a.folder) {
+                                    a.folder = choices.first().map_or(0, |(id, _)| *id);
+                                }
                             }
                         }
                     });
                     let width = (ui.available_width() - if many { 30.0 } else { 0.0 }).max(60.0);
                     match a.kind {
-                        Do::Move => {
+                        Do::Move | Do::Reference => {
+                            let folders = if a.kind == Do::Reference { references } else { folders };
                             let current =
                                 folders.iter().find(|f| f.0 == a.folder).map_or_else(|| tl!("Choose a folder").to_string(), |f| shown(&f.1, 200));
                             egui::ComboBox::from_id_salt(("do_folder", i)).width(width).selected_text(current).truncate().show_ui(ui, |ui| {

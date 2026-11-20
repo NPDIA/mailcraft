@@ -3,7 +3,7 @@
 //! Which kind of copy of MailCraft this is, and so whether it can update itself, and which file
 //! of a release it would be updated from.
 //!
-//! A copy installed from the Windows `.msi` or a Linux AppImage updates itself, and so does the
+//! A copy installed from the fork’s Windows installer or a Linux AppImage updates itself, and so does the
 //! macOS app (wherever the owner put it) when [`MAC_SELF_INSTALL`] is on; every other copy
 //! (`.deb`, `.rpm`, Flatpak, the portable `.zip`, a `.tar.gz`, FreeBSD, one built from source)
 //! is told of new versions and nothing more. It is known from where the program runs; when that
@@ -34,8 +34,8 @@ pub const MAC_SELF_INSTALL: bool = false;
 /// How this copy came to be installed, as far as updating it goes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Install {
-    /// From the Windows `.msi`: in the place the installer put it, which it registered.
-    Msi,
+    /// The fork’s Windows installer registered this installed copy.
+    Inno,
     /// A macOS `MailCraft.app`, run from where the owner keeps it (not from the disk image).
     MacApp,
     /// A Linux AppImage.
@@ -50,9 +50,9 @@ impl Install {
     /// (`std::env::consts::ARCH`). `None` where there is none to update from.
     pub fn file_name(self, version: &Version, arch: &str) -> Option<String> {
         let (os, arch, ext) = match (self, arch) {
-            (Install::Msi, "x86_64") => ("windows", "x64", "msi"),
-            (Install::Msi, "x86") => ("windows", "x86", "msi"),
-            (Install::Msi, "aarch64") => ("windows", "arm64", "msi"),
+            (Install::Inno, "x86_64") => return Some(format!("MailCraft_NPDIA_Custom-{version}-windows-x64.exe")),
+            (Install::Inno, "x86") => return Some(format!("MailCraft_NPDIA_Custom-{version}-windows-x86.exe")),
+            (Install::Inno, "aarch64") => return Some(format!("MailCraft_NPDIA_Custom-{version}-windows-arm64.exe")),
             // One app for both kinds of Mac.
             (Install::MacApp, "x86_64" | "aarch64") => ("macos", "universal", "dmg"),
             (Install::AppImage, "x86_64") => ("linux", "x86_64", "AppImage"),
@@ -74,7 +74,7 @@ pub fn this_copy() -> Install {
 /// Of a copy installed as `found`, the kind that updates it: a macOS app only with
 /// `mac_self_install`, and a macOS app or an AppImage, which this program replaces itself, only
 /// where `parent_writable` (asked only then) says that the folder it is in can be written to.
-/// The `.msi` is installed by Windows Installer, which asks for an administrator's say-so.
+/// The per-user Windows copy updates through the fork’s installer.
 pub fn updating(found: Install, mac_self_install: bool, parent_writable: &mut dyn FnMut() -> bool) -> Install {
     match found {
         Install::MacApp if !mac_self_install => Install::NoticeOnly,
@@ -119,26 +119,28 @@ pub fn found() -> Install {
     }
 }
 
-/// Where the `.msi` says it put `mailcraft.exe` (its App Paths entry); the portable `.zip`
-/// registers nothing.
+/// Where the fork’s installer put its desktop executable. Portable copies and the
+/// upstream installer do not have this registration.
 #[cfg(target_os = "windows")]
-fn registered_path() -> Option<std::path::PathBuf> {
+pub fn registered_path() -> Option<std::path::PathBuf> {
     use winreg::RegKey;
-    use winreg::enums::{HKEY_LOCAL_MACHINE, KEY_READ};
-    let key = RegKey::predef(HKEY_LOCAL_MACHINE)
-        .open_subkey_with_flags(r"Software\Microsoft\Windows\CurrentVersion\App Paths\mailcraft.exe", KEY_READ)
-        .ok()?;
-    let path: String = key.get_value("").ok()?;
-    let path = path.trim().trim_matches('"');
-    (!path.is_empty()).then(|| std::path::PathBuf::from(path))
+    use winreg::enums::{HKEY_CURRENT_USER, KEY_READ};
+    let key = RegKey::predef(HKEY_CURRENT_USER).open_subkey_with_flags(r"Software\NPDIA\MailCraft_NPDIA_Custom", KEY_READ).ok()?;
+    let path = std::path::PathBuf::from(key.get_value::<String, _>("Executable").ok()?);
+    (path.is_absolute() && path.file_name().and_then(OsStr::to_str).is_some_and(|n| n.eq_ignore_ascii_case("mailcraft.exe"))).then_some(path)
 }
 
-/// An `.msi` copy is the one the installer registered: the program is the file it names.
+#[cfg(not(target_os = "windows"))]
+pub fn registered_path() -> Option<std::path::PathBuf> {
+    None
+}
+
+/// An installed copy updates itself only at the path registered by the fork’s installer.
 #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
 pub fn windows(exe: &Path, registered: Option<&Path>) -> Install {
     let same = |a: &Path, b: &Path| a.as_os_str().to_string_lossy().eq_ignore_ascii_case(&b.as_os_str().to_string_lossy());
     match registered {
-        Some(registered) if same(exe, registered) => Install::Msi,
+        Some(registered) if same(exe, registered) => Install::Inno,
         _ => Install::NoticeOnly,
     }
 }

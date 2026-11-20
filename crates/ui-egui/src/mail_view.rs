@@ -462,19 +462,25 @@ fn search_bar(app: &mut MailApp, ui: &mut Ui, found: usize) {
     let t = Tokens::get(ui.ctx());
     let mb = &app.session.mailbox;
     let folder = mb.folder(app.session.view.folder);
-    let scope = match app.session.view.scope {
-        mailcraft_engine::Scope::Everywhere => tl!("All Mailboxes").to_string(),
-        // The account in view, by the name the folder pane gives it (#493).
-        mailcraft_engine::Scope::Mailbox => folder
-            .and_then(|f| mb.account(f.account))
-            .map(|a| if a.name.trim().is_empty() { a.email.trim().to_string() } else { a.name.trim().to_string() })
-            .filter(|n| !n.is_empty())
-            .unwrap_or_else(|| tl!("Current Mailbox").to_string()),
-        mailcraft_engine::Scope::Subfolders => {
-            folder.map(|f| crate::i18n::fmt(tl!("{folder} and its subfolders"), &[("folder", &crate::nav::folder_label(mb, f))])).unwrap_or_default()
+    let scope = if let Some(reference) = app.session.reference_folder() {
+        reference.name.clone()
+    } else if app.session.all_mail_accounts().is_some() {
+        tl!("All Mail").to_string()
+    } else {
+        match app.session.view.scope {
+            mailcraft_engine::Scope::Everywhere => tl!("All Mailboxes").to_string(),
+            // The account in view, by the name the folder pane gives it (#493).
+            mailcraft_engine::Scope::Mailbox => folder
+                .and_then(|f| mb.account(f.account))
+                .map(|a| if a.name.trim().is_empty() { a.email.trim().to_string() } else { a.name.trim().to_string() })
+                .filter(|n| !n.is_empty())
+                .unwrap_or_else(|| tl!("Current Mailbox").to_string()),
+            mailcraft_engine::Scope::Subfolders => folder
+                .map(|f| crate::i18n::fmt(tl!("{folder} and its subfolders"), &[("folder", &crate::nav::folder_label(mb, f))]))
+                .unwrap_or_default(),
+            // (A shared mailbox's folder with the mailbox it is in, #70.)
+            mailcraft_engine::Scope::Folder => folder.map(|f| crate::nav::folder_label(mb, f)).unwrap_or_default(),
         }
-        // (A shared mailbox's folder with the mailbox it is in, #70.)
-        mailcraft_engine::Scope::Folder => folder.map(|f| crate::nav::folder_label(mb, f)).unwrap_or_default(),
     };
     let said = match found {
         0 => crate::i18n::fmt(tl!("No results in {scope}"), &[("scope", &scope)]),
@@ -764,16 +770,19 @@ fn size_label(s: &mailcraft_engine::Session, m: &Message) -> Option<String> {
 /// one folder (its subfolders, its mailbox or every mailbox), as Outlook's rows do (#195, #493);
 /// in one folder the owner knows which it is.
 fn shows_folder(s: &mailcraft_engine::Session) -> bool {
-    s.view.scope != mailcraft_engine::Scope::Folder && !mailcraft_model::search::Query::parse(&s.view.search).is_empty()
+    s.all_mail_accounts().is_some()
+        || s.reference_folder().is_some()
+        || (s.view.scope != mailcraft_engine::Scope::Folder && !mailcraft_model::search::Query::parse(&s.view.search).is_empty())
 }
 
 /// Whether the list may hold mail of more than one account: a search of every mailbox, with more
 /// than one account to search. Its rows then wear their accounts' colours (#893); elsewhere the
 /// owner knows whose mail it is, and the rows stay as they were.
 fn mixes_accounts(s: &mailcraft_engine::Session) -> bool {
-    s.view.scope == mailcraft_engine::Scope::Everywhere
-        && s.mailbox.accounts.len() > 1
-        && !mailcraft_model::search::Query::parse(&s.view.search).is_empty()
+    s.mailbox.accounts.len() > 1
+        && (s.reference_folder().is_some()
+            || s.all_mail_accounts().is_some_and(|accounts| accounts.len() != 1)
+            || (s.view.scope == mailcraft_engine::Scope::Everywhere && !mailcraft_model::search::Query::parse(&s.view.search).is_empty()))
 }
 
 /// The colour of the stripe on `m`'s row (#893): its account's, in a list of more than one
@@ -917,7 +926,8 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     let delete_rect = flag_target.translate(vec2(-(QUICK_TARGET.x + QUICK_GAP), 0.0));
     let flagged = m.flag == FlagStatus::Flagged;
     let quick = over.then(|| {
-        let delete = ui.interact(delete_rect, ui.scope_id().with(("msg_delete", key)), Sense::click()).on_hover_text(tl!("Delete"));
+        let label = if app.session.reference_folder().is_some() { tl!("Remove Reference") } else { tl!("Delete") };
+        let delete = ui.interact(delete_rect, ui.scope_id().with(("msg_delete", key)), Sense::click()).on_hover_text(label);
         let flag = ui.interact(flag_target, ui.scope_id().with(("msg_flag", key)), Sense::click()).on_hover_text(if flagged {
             tl!("Clear flag")
         } else {
@@ -1152,10 +1162,18 @@ fn message_row(app: &mut MailApp, ui: &mut Ui, row: &Row, rect: Rect, drawn: &Dr
     }
     // (And under an open conversation, a message of another folder: a reply in Sent Items, #503.)
     if let Some(folder) = shown_folder {
-        let label = crate::nav::result_folder_label(&app.session.mailbox, folder);
+        let label = if app.session.all_mail_accounts().is_some() || app.session.reference_folder().is_some() {
+            crate::nav::message_origin(&app.session.mailbox, &m)
+        } else {
+            crate::nav::result_folder_label(&app.session.mailbox, folder)
+        };
         let end = sx;
         sx = paint_result_folder(p, pos2(end, tail_y), &label, &t) - 6.0;
-        app.hit.add("messageFolder", row.id, Rect::from_min_max(pos2(sx + 6.0, tail_y - 7.0), pos2(end, tail_y + 7.0)));
+        let origin = Rect::from_min_max(pos2(sx + 6.0, tail_y - 7.0), pos2(end, tail_y + 7.0));
+        app.hit.add("messageFolder", row.id, origin);
+        if app.session.all_mail_accounts().is_some() || app.session.reference_folder().is_some() {
+            ui.interact(origin, ui.scope_id().with(("message_origin", key)), Sense::hover()).on_hover_text(label);
+        }
     }
     // The labels' tags: planned above in a single line; under the time, in what is left down to
     // a little of the preview's line (never over the picture at the row's left).
@@ -1283,7 +1301,9 @@ fn clicks(app: &mut MailApp, ui: &Ui, resp: &egui::Response, row: &Row, m: &Mess
         }
         mi(ui, app, "Reply", "mail.reply", json!({}));
         mi(ui, app, "Reply All", "mail.replyAll", json!({}));
-        mi(ui, app, "Reply and Delete", "mail.replyAndDelete", json!({}));
+        if app.session.reference_folder().is_none() {
+            mi(ui, app, "Reply and Delete", "mail.replyAndDelete", json!({}));
+        }
         mi(ui, app, "Forward", "mail.forward", json!({}));
         mi(ui, app, "Forward as Attachment", "mail.forwardAsAttachment", json!({}));
         ui.separator();
@@ -1331,7 +1351,11 @@ fn clicks(app: &mut MailApp, ui: &Ui, resp: &egui::Response, row: &Row, m: &Mess
         crate::gmail_move::menu(app, ui);
         mi(ui, app, "Archive", "mail.archive", json!({}));
         ui.menu_button(tl!("Junk"), |ui| crate::ribbon::junk_menu(ui, app));
-        mi(ui, app, "Delete", "mail.delete", json!({}));
+        #[cfg(not(target_arch = "wasm32"))]
+        crate::nav::reference_folders::message_actions(app, ui, m);
+        if app.session.reference_folder().is_none() {
+            mi(ui, app, "Delete", "mail.delete", json!({}));
+        }
         ui.separator();
         mi(ui, app, "Add to Tasks", "tasks.fromMessage", json!({}));
         mi(ui, app, "Add Sender to Contacts", "people.fromMessage", json!({}));

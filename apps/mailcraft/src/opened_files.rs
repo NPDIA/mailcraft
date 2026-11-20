@@ -43,7 +43,10 @@ pub const MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 /// How deep the folders go below the one for all runs (run, file's folder, file).
 const DEPTH: usize = 3;
 
-/// The folder for all runs: in this user's cache folder.
+/// The name shared by the attachment cache and its cleanup guard.
+pub const CACHE_NAME: &str = "MailCraft_NPDIA_Custom";
+
+/// The attachment cache inside the owner’s profile.
 pub fn base() -> Option<PathBuf> {
     let cache = if cfg!(windows) {
         std::env::var_os("LOCALAPPDATA").map(PathBuf::from)
@@ -55,7 +58,7 @@ pub fn base() -> Option<PathBuf> {
             .filter(|p| p.is_absolute())
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))
     }?;
-    cache.is_absolute().then(|| cache.join("MailCraft").join("Attachments"))
+    cache.is_absolute().then(|| cache.join(CACHE_NAME).join("Attachments"))
 }
 
 /// The files opened in this run: where they go, and how many there have been.

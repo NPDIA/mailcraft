@@ -120,7 +120,7 @@ encoding_rs = { workspace = true }
 sysinfo = { version = "0.40.1", default-features = false, features = ["disk"] }
 # Windows Credential Manager, for the credential store above.
 windows-native-keyring-store = "1.1"
-# Three registry values read, never written: where the `.msi` put the program (whether this copy
+# Three registry values read, never written: where the fork's installer put the program (whether this copy
 # updates itself), an organisation's policy that turns updating off (`install.rs`, `updater.rs`), and
 # the system's ANSI code page, for the names in recent-file shortcuts (`recent_attachments.rs`).
 winreg = "0.56"

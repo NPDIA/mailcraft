@@ -414,6 +414,9 @@ pub struct Account {
     /// Settings (#1017).
     pub name: String,
     pub email: String,
+    /// Addresses this IMAP account may send as through its outgoing server.
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "crate::sync::lenient_list")]
+    pub send_aliases: Vec<String>,
     /// The owner's name, as recipients see it.
     pub display_name: String,
     pub kind: AccountKind,
@@ -526,6 +529,10 @@ pub struct Account {
     /// ([`Mailbox::accounts`]). `None` for every other account.
     #[serde(skip)]
     pub as_written: Option<AsWritten>,
+    /// An account added through a settings transfer must sign in before its remembered
+    /// credentials can be reused. A mailbox without this field keeps its existing behavior.
+    #[serde(skip_serializing_if = "is_false", deserialize_with = "crate::sync::lenient_or_default")]
+    pub transfer_needs_sign_in: bool,
     /// The folder this account's snoozed mail waits in (#949), known by its id so that a rename
     /// or another language makes no second one. `None` until the first message is snoozed.
     #[serde(skip_serializing_if = "Option::is_none", deserialize_with = "crate::sync::lenient")]
@@ -782,6 +789,24 @@ impl Directory {
 }
 
 impl Account {
+    /// Most alternate senders one account may configure.
+    pub const MAX_SEND_ALIASES: usize = 16;
+
+    /// The configured address, with the account's display name, if SMTP may send as it.
+    pub fn send_alias(&self, email: &str) -> Option<crate::Address> {
+        if self.kind != AccountKind::Imap || self.outgoing.is_none() || self.is_shared() || self.email.trim().eq_ignore_ascii_case(email) {
+            return None;
+        }
+        let address = self.send_aliases.iter().take(Self::MAX_SEND_ALIASES).find(|alias| alias.eq_ignore_ascii_case(email))?;
+        Some(crate::Address::new(&self.display_name, crate::mailbox_address(address)?))
+    }
+
+    /// Is this an address the owner sends mail from with this account?
+    pub fn owns_address(&self, email: &str) -> bool {
+        let email = email.trim();
+        !email.is_empty() && (self.email.trim().eq_ignore_ascii_case(email) || self.send_alias(email).is_some())
+    }
+
     /// The name of the signature replies and forwards start with (empty for none).
     pub fn reply_signature(&self) -> &str {
         self.reply_signature.as_deref().unwrap_or(&self.signature)
@@ -1185,6 +1210,8 @@ pub struct Mailbox {
     pub account_order: Vec<Id>,
     #[serde(deserialize_with = "crate::load_limit::capped_vec")]
     pub folders: Vec<Folder>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty", deserialize_with = "crate::load_limit::capped_map")]
+    pub reference_folders: BTreeMap<Id, Arc<crate::ReferenceFolder>>,
     #[serde(deserialize_with = "crate::load_limit::capped_messages")]
     pub messages: Messages,
     #[serde(deserialize_with = "crate::load_limit::capped_map")]
@@ -1356,6 +1383,7 @@ impl Default for Mailbox {
             journal: BTreeMap::new(),
             categories: default_categories(),
             rules: Vec::new(),
+            reference_folders: BTreeMap::new(),
             junk: crate::JunkLists::default(),
             junk_accounts: BTreeMap::new(),
             signatures: Vec::new(),
@@ -1557,6 +1585,7 @@ impl Mailbox {
             }
         }
         self.accounts.retain(|a| !going.contains(&a.id));
+        self.forget_reference_accounts(&going);
         self.account_order.retain(|a| !going.contains(a));
         self.folders.retain(|f| !going.contains(&f.account));
         self.messages.retain(|_, m| !going.contains(&m.account));
@@ -3220,6 +3249,9 @@ impl Mailbox {
                         let _ = self.move_message(id, *folder);
                     }
                 }
+                Action::ReferenceTo(folder) => {
+                    let _ = self.copy_references(*folder, &[id]);
+                }
                 Action::Delete => {
                     let _ = self.delete_message(id);
                 }
@@ -4303,6 +4335,9 @@ impl Mailbox {
         }
         // Ids stay within what JSON numbers hold exactly; anything above gets a new id, so the
         // counter can't run into the end of u64.
+        if self.repair_reference_folders(MAX_ID) {
+            fixed.push("reference folders tidied".to_string());
+        }
         let sane = |id: &Id| *id <= MAX_ID;
         let top = self
             .messages
@@ -4312,6 +4347,7 @@ impl Mailbox {
             .chain(self.tasks.keys())
             .chain(self.notes.keys())
             .chain(self.journal.keys())
+            .chain(self.reference_folders.keys())
             .copied()
             .chain(self.accounts.iter().map(|a| a.id))
             .chain(self.folders.iter().map(|f| f.id))

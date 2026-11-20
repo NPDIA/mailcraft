@@ -2046,6 +2046,17 @@ fn stash_block((parsed, fp): (Parsed, Fp), pack: Option<&Mutex<pack::Writer>>) -
     }
 }
 
+/// Read the last committed metadata record from an index for account settings transfer.
+/// Content and mailbox state are never opened, repaired, or written.
+pub(crate) fn transfer_metadata(file: std::fs::File, len: u64) -> Result<Vec<u8>, String> {
+    let budget = open_budget();
+    let replayed = index::replay_within(&mut std::io::BufReader::new(file.take(len)), len, index::MAX_RECORDS, Some(&budget))?;
+    if replayed.lost_saves != 0 || replayed.lost_records != 0 || matches!(replayed.tail, Tail::Bytes(_)) {
+        return Err("The source mailbox has an incomplete save.".into());
+    }
+    replayed.rest.map(|(data, _)| data).ok_or_else(|| "The source mailbox has no settings record.".into())
+}
+
 /// Open a mailbox file in this form, `len` bytes long.
 fn open_index(st: &mut State, file: &Path, len: u64, progress: &OpenProgress, launch: Launch) -> Result<Opened, String> {
     if len > MAX_INDEX {

@@ -245,6 +245,9 @@ pub struct Message {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub references: Vec<String>,
     pub from: Address,
+    /// From was explicitly selected as an SMTP alias on this device.
+    #[serde(skip_serializing_if = "std::ops::Not::not", deserialize_with = "crate::sync::lenient_or_default")]
+    pub send_as_alias: bool,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub reply_to: Vec<Address>,
     pub to: Vec<Address>,

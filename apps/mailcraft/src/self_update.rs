@@ -1,17 +1,14 @@
 // SPDX-FileCopyrightText: MailCraft contributors
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! Installing a new version of MailCraft, and going back to the one before, for a copy that
-//! updates itself (`install.rs`: the Windows `.msi`, the macOS app, a Linux AppImage).
+//! updates itself (`install.rs`: the fork’s Windows installer, the macOS app, a Linux AppImage).
 //!
 //! The window says when a new version is downloaded and checked (`mailcraft_ui_egui::updates`);
 //! once it has closed (the mailbox and the settings saved), [`on_exit`] installs it:
 //!
-//! - **Windows:** the `.msi` is installed by Windows Installer (`msiexec /i <file> /passive
-//!   /norestart`), whose administrator prompt comes once per update. That can't happen while
-//!   MailCraft runs (its own file is in use), so a copy of this program, in the data folder,
-//!   waits for this one to have gone ([`FINISH_UPDATE`], [`finish`]), checks the file again,
-//!   runs the installer, keeps the `.msi` for going back and starts MailCraft again when it was
-//!   asked to. A no to the prompt leaves the old version, which says so at its next start.
+//! - **Windows:** a helper waits for the window to close, verifies the fork’s signed manifest and
+//!   installer, then runs a private copy of the per-user installer. On failure the old version
+//!   starts again, when requested. Accepted installers and their manifest are kept for rollback.
 //! - **macOS:** the disk image is attached read-only where nothing else sees it (`hdiutil attach
 //!   -nobrowse -readonly`), the app in it copied beside the running one and put in its place by
 //!   renaming; the old one goes to the data folder, the image is detached. When the running app
@@ -22,15 +19,15 @@
 //!   it; the old one is copied to the data folder first.
 //!
 //! Nothing is run before it is checked: the file installed is the one downloaded and checked by
-//! the release's signature in this run, and its SHA-256, the one the signed list gives, is
-//! worked out again right before it is used. A file handed to another program (Windows
-//! Installer, `hdiutil`) is a copy of it in a folder made for that alone, checked as it is
+//! the release's signature, and its SHA-256, the one the signed list gives, is worked out
+//! again right before it is used. A setup or a file handed to `hdiutil` is a copy in a folder
+//! made for that alone, checked as it is
 //! opened and held open until the program is done ([`Handed`]). Programs are started through `std::process::Command` with fixed arguments, never a
 //! shell. A new version that is started waits for the old one to have gone ([`AFTER_UPDATE`]),
 //! which holds a lock in the data folder ([`hold_lock`]) until it exits.
 //!
 //! **Going back:** the version that was replaced is kept, one back (`previous-version/` in the
-//! data folder; on Windows the `.msi` the running version came from is in `this-version/`, so
+//! data folder; on Windows a verified setup is retained in `this-version/`, so
 //! there is one to go back to from the second update on). A record of the last update
 //! (`update-record.json`) and a count of the starts of the new version that didn't run a minute
 //! (`update-starts.json`) say at the next start what came of it ([`at_start`]): a version that
@@ -38,7 +35,7 @@
 
 use std::ffi::{OsStr, OsString};
 use std::fs::{self, File};
-use std::io;
+use std::io::{self, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::{Arc, Mutex, OnceLock};
@@ -53,8 +50,7 @@ use crate::install::Install;
 /// Started with this, MailCraft waits for the version it replaced to have gone before it opens
 /// the mailbox.
 pub const AFTER_UPDATE: &str = "--after-update";
-/// Started with this (a copy of the program in the data folder, on Windows), it installs an
-/// `.msi` once the program that started it has gone ([`finish`]), and does nothing else.
+/// The Windows helper runs the signed setup when the app that started it has stopped.
 pub const FINISH_UPDATE: &str = "--finish-update";
 /// How long a run has to last for its start to count as one that worked.
 pub const SETTLED_AFTER: Duration = Duration::from_secs(60);
@@ -67,9 +63,6 @@ const MAX_JSON: u64 = 64 * 1024;
 /// Most files and folders copied with an app, and how deep.
 const MAX_ENTRIES: usize = 100_000;
 const MAX_DEPTH: usize = 32;
-/// What Windows Installer answers when it installed (3010, 1641: a restart of the computer is
-/// wanted, or was started).
-const MSI_DONE: [i32; 3] = [0, 3010, 1641];
 
 /// The places in the data folder the updating keeps things in.
 #[derive(Clone, Debug)]
@@ -81,7 +74,7 @@ impl Folders {
     pub fn new(root: PathBuf) -> Folders {
         Folders { root }
     }
-    /// The version that was replaced (an app, an AppImage or an `.msi`) and `kept.json`.
+    /// The version that was replaced (an app, an AppImage or a setup) and `kept.json`.
     /// Downloads, until they are installed or refused.
     pub fn updates(&self) -> PathBuf {
         self.root.join(crate::updater::FOLDER)
@@ -89,7 +82,7 @@ impl Folders {
     fn previous(&self) -> PathBuf {
         self.root.join("previous-version")
     }
-    /// On Windows: the `.msi` the running version came from, when it came by an update.
+    /// On Windows: the signed setup for the running version, when installed by the updater.
     fn this_version(&self) -> PathBuf {
         self.root.join("this-version")
     }
@@ -102,7 +95,7 @@ impl Folders {
     fn lock(&self) -> PathBuf {
         self.root.join("update.lock")
     }
-    /// On Windows: the copy of the program that installs the `.msi`, and the installer's log.
+    /// On Windows: the helper and setup log.
     fn helper(&self) -> PathBuf {
         self.root.join("update-helper")
     }
@@ -122,6 +115,7 @@ pub struct Verified {
     pub version: Version,
     pub path: PathBuf,
     pub sha256: [u8; 32],
+    pub receipt: mailcraft_net::update_download::Receipt,
 }
 
 /// What the download hands the installing at exit.
@@ -222,7 +216,8 @@ fn write_kept(dir: &Path, kept: &Kept) -> io::Result<()> {
 /// start of a newly installed version counted until it has run a minute ([`settle`]).
 pub fn at_start(folders: &Folders, running: &str) -> UpdateStart {
     let mut out = UpdateStart::default();
-    // What is left of an `.msi` installed from a copy of the program: it has done its work.
+    let Some(_lock) = take_lock(folders, Duration::ZERO) else { return out };
+    // The helper from a finished update is no longer needed.
     let _ = fs::remove_dir_all(folders.helper().join("program"));
     let _ = fs::remove_dir_all(folders.mount());
     let _ = fs::remove_dir_all(folders.handed());
@@ -290,15 +285,18 @@ pub fn hold_lock(folders: &Folders) -> bool {
 
 /// Wait (at most `most`) for the program that holds the lock to have gone. Whether it has.
 pub fn wait_for_lock(folders: &Folders, most: Duration) -> bool {
-    let Ok(file) = open_lock(folders) else { return true };
+    take_lock(folders, most).is_some()
+}
+
+fn take_lock(folders: &Folders, most: Duration) -> Option<File> {
+    let file = open_lock(folders).ok()?;
     let began = Instant::now();
     loop {
         if file.try_lock().is_ok() {
-            let _ = file.unlock();
-            return true;
+            return Some(file);
         }
         if began.elapsed() >= most {
-            return false;
+            return None;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
@@ -358,19 +356,18 @@ impl Run {
     }
 }
 
-/// Windows Installer, from the system's own folder (never one found on `PATH`).
-fn msiexec_program() -> PathBuf {
-    let root = std::env::var_os("SystemRoot").filter(|r| Path::new(r).is_absolute()).unwrap_or_else(|| OsString::from(r"C:\Windows"));
-    PathBuf::from(root).join("System32").join("msiexec.exe")
-}
-
-/// `msiexec /i <msi> /passive /norestart /log <log>`: progress shown, no questions but Windows'
-/// own administrator prompt, never a restart of the computer.
-pub fn msiexec(msi: &Path, log: &Path) -> Run {
-    Run::new(
-        msiexec_program(),
-        &[OsStr::new("/i"), msi.as_os_str(), OsStr::new("/passive"), OsStr::new("/norestart"), OsStr::new("/log"), log.as_os_str()],
-    )
+/// Launch a checked fork setup as the owner, without a computer or application restart.
+fn inno_setup(installer: &Path, log: &Path) -> Run {
+    let mut log_arg = OsString::from("/LOG=");
+    log_arg.push(log);
+    Run {
+        program: installer.to_path_buf(),
+        args: ["/SP-", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCLOSEAPPLICATIONS", "/NORESTARTAPPLICATIONS"]
+            .into_iter()
+            .map(OsString::from)
+            .chain(std::iter::once(log_arg))
+            .collect(),
+    }
 }
 
 pub fn hdiutil_attach(dmg: &Path, mountpoint: &Path) -> Run {
@@ -406,92 +403,150 @@ pub fn start_program(program: &Path) -> Run {
     Run::new(program, &[OsStr::new(AFTER_UPDATE)])
 }
 
-/// What the copy of the program that installs an `.msi` is to do ([`finish`]).
+/// What the copy of the program that runs the fork’s installer is to do ([`finish`]).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Job {
-    pub msi: PathBuf,
+    pub installer: PathBuf,
     pub sha256: [u8; 32],
     pub from: String,
     pub to: String,
     /// Going back to a kept version.
     pub back: bool,
-    /// The program to start once it is installed.
-    pub start: Option<PathBuf>,
+    /// Relaunch the executable recorded by the fork’s installer once setup returns.
+    pub restart: bool,
 }
 
 impl Job {
     /// The arguments it is started with.
     pub fn args(&self) -> Vec<OsString> {
-        let mut args: Vec<OsString> = vec![
+        vec![
             FINISH_UPDATE.into(),
-            self.msi.clone().into_os_string(),
+            self.installer.clone().into_os_string(),
             hex(&self.sha256).into(),
             self.from.clone().into(),
             self.to.clone().into(),
             if self.back { "back" } else { "forward" }.into(),
-        ];
-        if let Some(start) = &self.start {
-            args.push(start.clone().into_os_string());
-        }
-        args
+            if self.restart { "restart" } else { "close" }.into(),
+        ]
     }
 
     /// The job its arguments (after the program's name) say, when they say one.
     pub fn parse(args: &[OsString]) -> Option<Job> {
         let text = |i: usize| args.get(i).and_then(|a| a.to_str());
-        if text(0) != Some(FINISH_UPDATE) || args.len() > 7 {
+        if text(0) != Some(FINISH_UPDATE) || args.len() != 7 {
             return None;
         }
-        let msi = PathBuf::from(args.get(1)?);
+        let installer = PathBuf::from(args.get(1)?);
         let back = match text(5)? {
             "back" => true,
             "forward" => false,
             _ => return None,
         };
-        let job = Job {
-            sha256: unhex(text(2)?)?,
-            from: version(text(3))?,
-            to: version(text(4))?,
-            back,
-            start: args.get(6).map(PathBuf::from).filter(|p| p.is_absolute()),
-            msi,
+        let restart = match text(6)? {
+            "restart" => true,
+            "close" => false,
+            _ => return None,
         };
-        (job.msi.is_absolute() && job.msi.extension() == Some(OsStr::new("msi"))).then_some(job)
+        let from = Version::parse(text(3)?)?;
+        let to = Version::parse(text(4)?)?;
+        let direction_matches = if back { from.is_newer_than(&to) } else { to.is_newer_than(&from) };
+        if !direction_matches {
+            return None;
+        }
+        let expected = Install::Inno.file_name(&to, std::env::consts::ARCH)?;
+        if !installer.is_absolute() || installer.file_name()?.to_str()? != expected {
+            return None;
+        }
+        Some(Job { sha256: unhex(text(2)?)?, from: from.to_string(), to: to.to_string(), back, restart, installer })
     }
 }
 
-/// The copy of the program in the data folder, on Windows: wait for the program that started
-/// it to have gone, check the `.msi`, install it, keep it for going back, and start MailCraft
-/// again when it was asked to. Returns the process's exit code.
+/// The helper waits for the installed copy to close and validates the signed setup again.
 pub fn finish(job: &Job, folders: &Folders) -> i32 {
-    wait_for_the_old_one(folders);
-    let installed = install_msi(job, folders, &mut |run| run.wait());
+    let Some(target) = crate::install::registered_path() else { return 2 };
+    if job.from != env!("CARGO_PKG_VERSION") || crate::updater::turned_off_by_organisation() {
+        return 2;
+    }
+    if !std::env::current_exe().and_then(fs::canonicalize).is_ok_and(|exe| fs::canonicalize(helper_program(folders)).is_ok_and(|path| path == exe)) {
+        return 2;
+    }
+    let Some(lock) = take_lock(folders, WAIT_FOR_OLD) else { return 2 };
+    if !authorised_job(job, folders, &mailcraft_net::update_download::release_keys()) {
+        return 2;
+    }
+    let installed = install_setup(job, folders, &mut |run| run.wait());
+    let mut profile_ready = true;
     if installed {
-        let _ = keep_installed_msi(folders, job);
+        if let Err(e) = keep_installed_setup(folders, job) {
+            log::warn!("couldn't keep the installed version for going back: {}", e.kind());
+        }
+        if job.back
+            && let Some(mailbox) = crate::default_mailbox_path()
+        {
+            match mailcraft_engine::store_before::put_back(&mailbox, &job.from) {
+                Ok(true) => log::info!("the default mailbox format from before the update was restored"),
+                Ok(false) => {}
+                Err(e) => {
+                    profile_ready = false;
+                    log::warn!("the default mailbox from before the update couldn't be restored: {}", e.kind());
+                }
+            }
+        }
     }
-    if let Some(start) = &job.start {
-        let _ = start_program(start).spawn_detached();
+    drop(lock);
+    if job.restart && profile_ready && crate::install::registered_path().as_ref() == Some(&target) {
+        let _ = start_program(&target).spawn_detached();
     }
-    if installed { 0 } else { 1 }
+    if installed && profile_ready { 0 } else { 1 }
 }
 
-/// The `.msi` installed by Windows Installer, run by `run`, from a checked copy of it
-/// ([`Handed`]), never from the file in the data folder; whether it was installed.
-fn install_msi(job: &Job, folders: &Folders, run: &mut dyn FnMut(&Run) -> Option<i32>) -> bool {
-    let handed = match Handed::new(&job.msi, job.sha256, &folders.handed()) {
+const RECEIPT_FILE: &str = "signed-release.json";
+
+fn write_receipt(dir: &Path, receipt: &mailcraft_net::update_download::Receipt) -> io::Result<()> {
+    let sums = std::str::from_utf8(&receipt.sums).map_err(io::Error::other)?;
+    let signature = std::str::from_utf8(&receipt.signature).map_err(io::Error::other)?;
+    write_json(&dir.join(RECEIPT_FILE), &json!({"sums": sums, "signature": signature}))
+}
+
+fn read_receipt(dir: &Path) -> Option<mailcraft_net::update_download::Receipt> {
+    // JSON may double the size of the newline-containing manifest.
+    let mut text = Vec::new();
+    File::open(dir.join(RECEIPT_FILE)).ok()?.take(2 * MAX_JSON + 1).read_to_end(&mut text).ok()?;
+    if u64::try_from(text.len()).ok()? > 2 * MAX_JSON {
+        return None;
+    }
+    let value: Value = serde_json::from_slice(&text).ok()?;
+    Some(mailcraft_net::update_download::Receipt {
+        sums: value.get("sums")?.as_str()?.as_bytes().to_vec(),
+        signature: value.get("signature")?.as_str()?.as_bytes().to_vec(),
+    })
+}
+
+fn authorised_job(job: &Job, folders: &Folders, keys: &[[u8; 32]]) -> bool {
+    let dir = if job.back { folders.previous() } else { folders.updates() };
+    let Some(name) = Version::parse(&job.to).and_then(|version| Install::Inno.file_name(&version, std::env::consts::ARCH)) else { return false };
+    let Some(record) = read_record(folders) else { return false };
+    !record.settled
+        && (record.from, record.to, record.back) == (job.from.clone(), job.to.clone(), job.back)
+        && job.installer == dir.join(&name)
+        && read_receipt(&dir).is_some_and(|receipt| receipt.digest(&name, keys).ok() == Some(job.sha256))
+}
+
+/// Run a checked copy of the setup, holding it read-only until the setup returns.
+fn install_setup(job: &Job, folders: &Folders, run: &mut dyn FnMut(&Run) -> Option<i32>) -> bool {
+    let handed = match Handed::new(&job.installer, job.sha256, &folders.handed()) {
         Ok(handed) => handed,
         Err(e) => {
             log::warn!("the installer wasn't run: {e}");
             return false;
         }
     };
-    let code = run(&msiexec(&handed.path, &folders.helper().join("install.log")));
-    // (The copy is held open until here, and its folder deleted after.)
+    let code = run(&inno_setup(&handed.path, &folders.helper().join("install.log")));
     drop(handed);
-    code.is_some_and(|c| MSI_DONE.contains(&c))
+    code == Some(0)
 }
 
-/// A checked file handed to a program of the system's (Windows Installer, `hdiutil`): copied
+/// A checked setup or file handed to `hdiutil`: copied
 /// into a folder made for this hand-over alone (for the owner only, on Unix), checked once more
 /// by its SHA-256 as it is opened, and held open until the program is done with it (on Windows
 /// shared for reading only, so that nothing changes it meanwhile). The program is given the
@@ -564,36 +619,39 @@ impl Drop for Handed {
     }
 }
 
-/// After an `.msi` installed: the one the running version came from becomes the one kept back,
+/// After setup succeeded: the one the running version came from becomes the one kept back,
 /// and this one the one it came from. Going back, the kept one becomes the one it came from, and
 /// none is kept back.
-fn keep_installed_msi(folders: &Folders, job: &Job) -> io::Result<()> {
+fn keep_installed_setup(folders: &Folders, job: &Job) -> io::Result<()> {
     let (this, previous) = (folders.this_version(), folders.previous());
-    let name = job.msi.file_name().and_then(OsStr::to_str).filter(|n| plain_name(n)).ok_or_else(|| io::Error::other("no name"))?.to_string();
+    let name = job.installer.file_name().and_then(OsStr::to_str).filter(|n| plain_name(n)).ok_or_else(|| io::Error::other("no name"))?.to_string();
     let kept = Kept { version: job.to.clone(), file: name.clone(), sha256: Some(job.sha256) };
     if job.back {
-        let _ = fs::remove_dir_all(&this);
-        fs::rename(&previous, &this)?;
-        return write_kept(&this, &kept);
+        remove_any(&this)?;
+        return fs::rename(&previous, &this);
     }
-    let _ = fs::remove_dir_all(&previous);
-    if read_kept(&this).is_some() {
+    // Stage the installer, signature and record together. An interrupted copy cannot replace
+    // the previous cache entry with an incomplete one.
+    let stage = tempfile::Builder::new().prefix("verified-setup-").tempdir_in(&folders.root)?;
+    fs::copy(&job.installer, stage.path().join(&name))?;
+    fs::copy(folders.updates().join(RECEIPT_FILE), stage.path().join(RECEIPT_FILE))?;
+    write_kept(stage.path(), &kept)?;
+    remove_any(&previous)?;
+    let was_kept = read_kept(&this).is_some();
+    if was_kept {
         fs::rename(&this, &previous)?;
     } else {
-        let _ = fs::remove_dir_all(&this);
+        remove_any(&this)?;
     }
-    fs::create_dir_all(&this)?;
-    move_file(&job.msi, &this.join(&name))?;
-    write_kept(&this, &kept)
-}
-
-/// Rename, or copy and delete when the two places are on different disks.
-fn move_file(from: &Path, to: &Path) -> io::Result<()> {
-    if fs::rename(from, to).is_ok() {
-        return Ok(());
+    if let Err(error) = fs::rename(stage.path(), &this) {
+        if was_kept {
+            let _ = fs::rename(&previous, &this);
+        }
+        return Err(error);
     }
-    fs::copy(from, to)?;
-    fs::remove_file(from)
+    let _ = fs::remove_file(&job.installer);
+    let _ = fs::remove_file(folders.updates().join(RECEIPT_FILE));
+    Ok(())
 }
 
 /// `.<name>.<what>` beside `path`.
@@ -909,7 +967,7 @@ pub fn clear_mac_data(folders: &Folders) {
 pub fn target(install: Install) -> Option<PathBuf> {
     let exe = std::env::current_exe().ok()?;
     match install {
-        Install::Msi => Some(exe),
+        Install::Inno => Some(exe),
         // `<name>.app/Contents/MacOS/<program>`
         Install::MacApp => exe.parent()?.parent()?.parent().map(Path::to_path_buf),
         Install::AppImage => std::env::var_os("APPIMAGE").map(PathBuf::from).filter(|p| p.is_absolute()),
@@ -926,6 +984,9 @@ pub fn on_exit(folders: &Folders, install: Install, what: OnExit, verified: Opti
     // Held from here until this program has gone: another start leaves what is beside the app
     // alone meanwhile ([`clear_leftovers`]), and a new version waits for it.
     if !hold_lock(folders) {
+        if install == Install::Inno {
+            return Err("the exclusive update lock couldn't be taken".into());
+        }
         log::warn!("the update lock couldn't be taken; another start may tidy beside MailCraft meanwhile");
     }
     match what {
@@ -938,9 +999,9 @@ pub fn on_exit(folders: &Folders, install: Install, what: OnExit, verified: Opti
             let to = version.to_string();
             write_record(folders, &Record { from: running.into(), to: to.clone(), back: false, settled: false }).map_err(|e| e.kind().to_string())?;
             let started = match install {
-                Install::Msi => {
-                    let job =
-                        Job { msi: verified.path, sha256: verified.sha256, from: running.into(), to, back: false, start: restart.then_some(target) };
+                Install::Inno => {
+                    write_receipt(&folders.updates(), &verified.receipt).map_err(|e| e.kind().to_string())?;
+                    let job = Job { installer: verified.path, sha256: verified.sha256, from: running.into(), to, back: false, restart };
                     return windows_helper(folders, &job);
                 }
                 Install::AppImage => {
@@ -959,9 +1020,15 @@ pub fn on_exit(folders: &Folders, install: Install, what: OnExit, verified: Opti
             Ok(())
         }
         OnExit::GoBack { to } => {
+            if install == Install::Inno && (mailbox.is_none() || mailbox != crate::default_mailbox_path().as_deref()) {
+                return Err("Windows rollback requires the default mailbox to be open".into());
+            }
             let previous = folders.previous();
             let kept = read_kept(&previous).filter(|k| k.version == to).ok_or("the version to go back to isn't kept")?;
-            if let Some(mailbox) = mailbox {
+            // The Windows installer must finish before changing anything in the profile.
+            if install != Install::Inno
+                && let Some(mailbox) = mailbox
+            {
                 match mailcraft_engine::store_before::put_back(mailbox, running) {
                     Ok(true) => log::info!("the mailbox file from before MailCraft {running} changed its format is put back"),
                     Ok(false) => {}
@@ -971,9 +1038,9 @@ pub fn on_exit(folders: &Folders, install: Install, what: OnExit, verified: Opti
             write_record(folders, &Record { from: running.into(), to: to.clone(), back: true, settled: false }).map_err(|e| e.kind().to_string())?;
             let file = previous.join(&kept.file);
             let started = match install {
-                Install::Msi => {
+                Install::Inno => {
                     let sha256 = kept.sha256.ok_or("the kept installer has no checksum")?;
-                    let job = Job { msi: file, sha256, from: running.into(), to, back: true, start: Some(target) };
+                    let job = Job { installer: file, sha256, from: running.into(), to, back: true, restart: true };
                     return windows_helper(folders, &job);
                 }
                 Install::AppImage => {
@@ -1096,18 +1163,18 @@ pub fn app_in(mount: &Path) -> Option<PathBuf> {
         .find(|p| p.extension() == Some(OsStr::new("app")) && fs::symlink_metadata(p).is_ok_and(|m| m.is_dir()) && p.join("Contents").is_dir())
 }
 
-/// Windows: a copy of this program in the data folder installs the `.msi` once this one has
-/// gone, holding the lock it waits on until then.
+fn helper_program(folders: &Folders) -> PathBuf {
+    folders.helper().join("program").join("mailcraft-update.exe")
+}
+
+/// The helper starts while the app holds the lock. Its signed setup waits until the app stops.
 fn windows_helper(folders: &Folders, job: &Job) -> Result<(), String> {
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     let dir = folders.helper().join("program");
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let copy = dir.join("mailcraft-update.exe");
+    let copy = helper_program(folders);
     fs::copy(&exe, &copy).map_err(|e| format!("the installer's helper couldn't be made: {}", e.kind()))?;
-    if !hold_lock(folders) {
-        log::warn!("the installer may start before MailCraft has gone");
-    }
     Run { program: copy, args: job.args() }.spawn_detached().map_err(|e| format!("the installer couldn't be started: {}", e.kind()))
 }
 

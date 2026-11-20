@@ -162,6 +162,8 @@ pub enum Dialog {
     ImportTree(Box<crate::import_tree::ImportTree>),
     /// A .pst file, before and while its mail is imported ([`crate::import_pst`]).
     ImportPst(Box<crate::import_pst::ImportPst>),
+    #[cfg(not(target_arch = "wasm32"))]
+    SettingsTransfer(Box<crate::settings_transfer::Dialog>),
     /// People › Merge Duplicates (#506, [`crate::merge_contacts`]): it only collects what to
     /// merge, then runs `people.merge`.
     MergeContacts(Box<crate::merge_contacts::MergeContacts>),
@@ -287,6 +289,8 @@ impl Dialog {
             Dialog::AutomaticReplies(_) => "automaticReplies",
             Dialog::ImportTree(_) => "importTree",
             Dialog::ImportPst(_) => "importPst",
+            #[cfg(not(target_arch = "wasm32"))]
+            Dialog::SettingsTransfer(_) => "settingsTransfer",
             Dialog::MergeContacts(_) => "mergeContacts",
             Dialog::Pick(p) => match p.kind {
                 crate::pick_item::PickKind::Message => "attachItem",
@@ -504,6 +508,11 @@ pub fn confirmation(app: &MailApp, id: &str, params: &Value) -> Option<Question>
             let (title, text, action) = crate::attachment_open::question(app, params)?;
             question(&title, text, &action)
         }
+        "mail.delete" | "mail.deletePermanently"
+            if app.session.reference_folder().is_some() || (id == "mail.deletePermanently" && app.session.all_mail_accounts().is_some()) =>
+        {
+            None
+        }
         "mail.delete" | "mail.deletePermanently" => {
             // What the selection stands for: a conversation's row, every message of it the list
             // shows (#503).
@@ -522,10 +531,12 @@ pub fn confirmation(app: &MailApp, id: &str, params: &Value) -> Option<Question>
                 Ok(None) => selected(),
                 Err(_) => return None,
             };
-            // An ordinary delete only asks when it is for good: the message is in Deleted Items already.
+            // All Mail refuses to delete for good, but still asks before moving a whole conversation.
+            let aggregate = app.session.all_mail_accounts().is_some();
             let for_good = |m: &mailcraft_model::Message| {
-                id == "mail.deletePermanently"
-                    || mb.folder_of_kind(m.account, mailcraft_model::FolderKind::Deleted).is_none_or(|bin| mb.subtree(bin).contains(&m.folder))
+                !aggregate
+                    && (id == "mail.deletePermanently"
+                        || mb.folder_of_kind(m.account, mailcraft_model::FolderKind::Deleted).is_none_or(|bin| mb.subtree(bin).contains(&m.folder)))
             };
             let going: Vec<&mailcraft_model::Message> = ids.iter().filter_map(|id| mb.message(*id)).filter(|m| for_good(m)).collect();
             if going.is_empty() {
@@ -2291,6 +2302,12 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
         Dialog::ImportTree(dialog) => {
             let mut done = false;
             let open = window(ctx, tl!("Import a Folder of Mailboxes"), crate::import_tree::WIDTH, |ui| done = dialog.show(app, ui, enter));
+            close |= !open || done;
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        Dialog::SettingsTransfer(dialog) => {
+            let mut done = false;
+            let open = window(ctx, dialog.title(), 520.0, |ui| done = dialog.show(app, ui));
             close |= !open || done;
         }
         Dialog::ImportPst(dialog) => {

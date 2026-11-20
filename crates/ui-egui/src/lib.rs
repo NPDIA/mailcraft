@@ -256,6 +256,10 @@ pub mod server_sync;
 #[cfg(test)]
 mod server_sync_tests;
 pub mod settings_notice;
+#[cfg(not(target_arch = "wasm32"))]
+mod settings_transfer;
+#[cfg(all(test, not(target_arch = "wasm32")))]
+mod settings_transfer_tests;
 mod shared_calendars;
 #[cfg(test)]
 mod shared_calendars_tests;
@@ -3221,6 +3225,9 @@ impl MailApp {
             return None;
         }
         let a = self.session.mailbox.account(account)?;
+        if a.transfer_needs_sign_in {
+            return None;
+        }
         // (What the background read brought, never the store itself: it may be locked, and then
         // asking blocks until the owner answers.)
         self.secret_cache.get(&Self::secret_key(kind, a)).cloned()
@@ -3232,11 +3239,16 @@ impl MailApp {
         if !matches!(kind, "password" | "refresh") || !self.ui.remember_sign_in || secret.is_empty() || self.data_removed || self.unconfirmed {
             return;
         }
-        let Some(account) = self.session.mailbox.account(account) else { return };
-        let key = Self::secret_key(kind, account);
+        let Some(saved) = self.session.mailbox.account(account) else { return };
+        let key = Self::secret_key(kind, saved);
+        let transferred = saved.transfer_needs_sign_in;
         let Some(store) = &self.services.secrets else { return };
         match store.set(&key, secret) {
             Ok(()) => {
+                if transferred && let Ok(saved) = self.session.mailbox.account_mut(account) {
+                    saved.transfer_needs_sign_in = false;
+                    self.session.mailbox_changed();
+                }
                 self.secret_cache.insert(key.clone(), secret.to_string());
                 self.index_secret_key(key);
             }
@@ -4856,6 +4868,12 @@ impl MailApp {
             self.session.mailbox.folder(self.session.view.folder).and_then(|f| self.session.mailbox.account(f.account)).map(|a| a.name.clone());
         match self.session.view.module {
             Module::Mail => {
+                if let Some(reference) = self.session.reference_folder() {
+                    return reference.name.clone();
+                }
+                if self.session.all_mail_accounts().is_some() {
+                    return tl!("All Mail").to_string();
+                }
                 let folder = self.session.mailbox.folder(self.session.view.folder).map_or(tl!("Mail"), crate::nav::folder_name);
                 match account.filter(|a| !a.is_empty()) {
                     Some(a) => i18n::fmt(tl!("{folder} - {mailbox}"), &[("folder", folder), ("mailbox", &a)]),

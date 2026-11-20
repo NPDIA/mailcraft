@@ -13,19 +13,21 @@ mod proof_tests;
 #[cfg(test)]
 mod tests;
 
+pub const SETTINGS_NAME: &str = if cfg!(any(windows, target_os = "macos")) { "MailCraft_NPDIA_Custom" } else { "mailcraft-npdia-custom" };
+
 /// The app's settings folder (preferences, logs, key files): macOS
-/// `~/Library/Application Support/MailCraft`, Windows `%APPDATA%\MailCraft`, otherwise
-/// `$XDG_CONFIG_HOME/mailcraft` or `~/.config/mailcraft`.
+/// `~/Library/Application Support/MailCraft_NPDIA_Custom`, Windows
+/// `%APPDATA%\MailCraft_NPDIA_Custom`, otherwise the XDG configuration directory.
 pub fn settings_dir() -> Option<PathBuf> {
     if cfg!(target_os = "macos") {
-        std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Library/Application Support/MailCraft"))
+        std::env::var_os("HOME").map(|h| PathBuf::from(h).join("Library/Application Support").join(SETTINGS_NAME))
     } else if cfg!(windows) {
-        std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join("MailCraft"))
+        std::env::var_os("APPDATA").map(|a| PathBuf::from(a).join(SETTINGS_NAME))
     } else {
         std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))
-            .map(|c| c.join("mailcraft"))
+            .map(|c| c.join(SETTINGS_NAME))
     }
 }
 
