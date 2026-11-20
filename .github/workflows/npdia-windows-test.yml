@@ -5,6 +5,8 @@ name: NPDIA Windows installer test
 on:
   push:
     branches: [test/desktop-custom]
+  pull_request:
+    branches: [test/desktop-custom]
 
 permissions:
   contents: read
@@ -15,7 +17,10 @@ concurrency:
 
 jobs:
   installer:
-    if: github.repository == 'NPDIA/mailcraft'
+    if: github.repository == 'NPDIA/mailcraft' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      actions: read
+      contents: read
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
@@ -27,6 +32,28 @@ jobs:
         with:
           toolchain: 1.98.1
           targets: x86_64-pc-windows-msvc
+      # The previous installer is the tested RC4 binary, identified by both source and digest.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44697049163
+          name: MailCraft_NPDIA_Custom-0.13.9-rc.4-windows-x64
+          path: ${{ runner.temp }}/mailcraft-previous
+      - name: Verify the previous Windows installer
+        id: previous
+        shell: pwsh
+        run: |
+          $Directory = Join-Path $env:RUNNER_TEMP 'mailcraft-previous'
+          $Installer = Join-Path $Directory 'MailCraft_NPDIA_Custom-0.13.9-rc.4-windows-x64.exe'
+          $BuildInfo = Get-Content -Raw (Join-Path $Directory 'BUILDINFO.json') | ConvertFrom-Json
+          $ExpectedHash = '9fde9c39103645f7956f77127e326ca53dbff8f04e65ea6f3343bc0882a84a78'
+          if ($BuildInfo.version -cne '0.13.9-rc.4' -or
+              $BuildInfo.source_commit -cne '2b47420d0fd891b92ed14fb56a3840fb65881683' -or
+              $BuildInfo.installer_sha256 -cne $ExpectedHash -or
+              (Get-FileHash -Algorithm SHA256 -LiteralPath $Installer).Hash -ine $ExpectedHash) {
+            throw 'The previous Windows installer does not match the verified RC4 build.'
+          }
+          "installer=$Installer" >> $env:GITHUB_OUTPUT
       - name: Install Inno Setup 7.1.0 x64
         id: inno
         shell: pwsh
@@ -51,16 +78,28 @@ jobs:
           $Version = ($Metadata.packages | Where-Object name -CEQ 'mailcraft').version
           ./packaging/windows/package-npdia.ps1 -Version $Version -SourceCommit $env:GITHUB_SHA -Compiler $env:ISCC
           "version=$Version" >> $env:GITHUB_OUTPUT
-      - name: Verify the installed Windows app and first IMAP sync
+      - name: Verify Windows installation, upgrade, rollback and IMAP sync
         shell: pwsh
         env:
           NPDIA_PACKAGE_VERSION: ${{ steps.build.outputs.version }}
+          NPDIA_PREVIOUS_INSTALLER: ${{ steps.previous.outputs.installer }}
         run: |
           $Version = $env:NPDIA_PACKAGE_VERSION
           $Installer = "dist/installer/MailCraft_NPDIA_Custom-$Version-windows-x64.exe"
-          ./packaging/windows/test-npdia-installer.ps1 -Version $Version -Installer $Installer -TestImap
-      - name: Upload installer and test evidence
-        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
+          ./packaging/windows/test-npdia-installer.ps1 -Version $Version -Installer $Installer -PreviousInstaller $env:NPDIA_PREVIOUS_INSTALLER -TestImap
+          if ($Version -cne '0.13.9-rc.4') {
+            $Smoke = Get-Content -Raw 'dist/installer/installer-smoke.json' | ConvertFrom-Json
+            if ($Smoke.structured_profile.upgraded_cli_reopened -cne 'passed' -or
+                $Smoke.structured_profile.rolled_back_cli_reopened -cne 'passed' -or
+                $Smoke.structured_profile.upgraded_desktop_reopened -cne 'passed' -or
+                $Smoke.structured_profile.rolled_back_desktop_reopened -cne 'passed' -or
+                $Smoke.structured_profile.outbox_record_retained -cne 'passed' -or
+                $Smoke.structured_profile.synthetic_windows_credential_retained -cne 'passed' -or
+                $Smoke.structured_profile.installer_sha256 -ine (Get-FileHash -Algorithm SHA256 -LiteralPath $Installer).Hash) {
+              throw 'The candidate needs successful profile upgrade and rollback checks for this installer.'
+            }
+          }
+      - name: Upload the verified installer and test evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: MailCraft_NPDIA_Custom-${{ steps.build.outputs.version }}-windows-x64
@@ -71,4 +110,43 @@ jobs:
             dist/installer/installer-smoke.json
             dist/installer/installer-imap.json
             dist/installer/*.log
+          if-no-files-found: error
+      - name: Upload installer failure logs
+        if: ${{ failure() && steps.build.conclusion == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MailCraft_NPDIA_Custom-installer-failure-logs
+          path: dist/installer/*.log
+          if-no-files-found: ignore
+
+  linux-cli:
+    if: github.repository == 'NPDIA/mailcraft' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # 1.98.1 via pinned action
+        with:
+          toolchain: 1.98.1
+      - name: Build and run the Linux CLI
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p mailcraft-cli
+          cli=target/release/mailcraft-cli
+          "$cli" --version
+          mailbox="$RUNNER_TEMP/smoke.mailcraft"
+          "$cli" run --sample --cmd mail.list --save "$mailbox" >/dev/null
+          test -s "$mailbox"
+          "$cli" list "$mailbox" >/dev/null
+          mkdir -p dist/linux-cli
+          tar -czf dist/linux-cli/mailcraft-cli-linux-x64.tar.gz -C target/release mailcraft-cli \
+            -C "$GITHUB_WORKSPACE" LICENSE-MIT LICENSE-APACHE NOTICE ATTRIBUTION.md
+          git rev-parse HEAD > dist/linux-cli/SOURCE_COMMIT
+          (cd dist/linux-cli && sha256sum mailcraft-cli-linux-x64.tar.gz > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: MailCraft_NPDIA_Custom-linux-x64-cli
+          path: dist/linux-cli/
           if-no-files-found: error
