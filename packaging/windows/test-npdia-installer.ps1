@@ -63,6 +63,10 @@ function Assert-Installed {
   if ((Invoke-Installer $App @('--version')) -ne 0) { throw 'The installed desktop executable could not run.' }
 }
 
+function Test-InstallationRemains {
+  (Test-Path -LiteralPath $Registry) -or (Test-Path -LiteralPath $App) -or (Test-Path -LiteralPath $Shortcut)
+}
+
 function Invoke-ProfileFixture([string] $Stage) {
   python (Join-Path $PSScriptRoot 'test-npdia-upgrade-profile.py') $Stage --profile $TestProfileDirectory --state $FixtureState --cli $Cli --windows-credentials
   if ($LASTEXITCODE -ne 0) { throw "The structured upgrade profile check failed during '$Stage'." }
@@ -76,6 +80,7 @@ function Assert-DesktopProfile {
 $OtherApp = Join-Path $OtherDirectory 'mailcraft.exe'
 $ProfileMarker = Join-Path $TestProfileDirectory 'mailbox.mailcraft'
 $ProfileCreated = $false
+$TestFailed = $false
 New-Item -ItemType Directory -Path $OtherDirectory | Out-Null
 try {
   New-Item -ItemType Directory -Path $TestProfileDirectory | Out-Null
@@ -128,7 +133,7 @@ try {
   }
 
   Invoke-Setup $Uninstaller @() 'uninstall'
-  if ((Test-Path -LiteralPath $Registry) -or (Test-Path -LiteralPath $App) -or (Test-Path -LiteralPath $Shortcut)) {
+  if (Test-InstallationRemains) {
     throw 'Uninstall did not remove the app, registration and shortcut.'
   }
   if ($PreviousInstaller) {
@@ -163,16 +168,21 @@ try {
     synthetic_profile_retained = 'passed'
     structured_profile = $StructuredProfile
   } | ConvertTo-Json | Set-Content -Encoding utf8 (Join-Path $Results 'installer-smoke.json')
+} catch {
+  $TestFailed = $true
+  throw
 } finally {
-  $UninstallFailed = $false
+  $UninstallFailed = Test-InstallationRemains
   try {
-    if (Test-Path -LiteralPath $Uninstaller) {
-      $UninstallFailed = $true
-      if ((Invoke-Installer $Uninstaller $Silent) -ne 0) {
-        throw 'Cleanup could not uninstall MailCraft from the disposable account.'
-      }
-      $UninstallFailed = $false
+    # Inno's bootstrap can remain on disk briefly after a successful uninstall.
+    if ($UninstallFailed) {
+      Invoke-Setup $Uninstaller @() 'uninstall-cleanup'
+      $UninstallFailed = Test-InstallationRemains
+      if ($UninstallFailed) { throw 'Cleanup could not uninstall MailCraft from the disposable account.' }
     }
+  } catch {
+    if (-not $TestFailed) { throw }
+    Write-Warning $_.Exception.Message
   } finally {
     try {
       if ($PreviousInstaller -and $ProfileCreated) { Invoke-ProfileFixture 'clean' }
@@ -180,7 +190,13 @@ try {
       try {
         if ($ProfileCreated) { Remove-Item -Recurse -Force -LiteralPath $TestProfileDirectory }
       } finally {
-        if (-not $UninstallFailed) { Remove-Item -Recurse -Force -LiteralPath $Root }
+        if (-not $UninstallFailed) {
+          $CleanupWait = [Diagnostics.Stopwatch]::StartNew()
+          while ((Test-Path -LiteralPath $InstallDirectory) -and $CleanupWait.Elapsed.TotalSeconds -lt 10) {
+            Start-Sleep -Milliseconds 100
+          }
+          Remove-Item -Recurse -Force -LiteralPath $Root
+        }
       }
     }
   }
