@@ -327,6 +327,8 @@ pub(crate) struct ImapWorld {
     pub(crate) cut_at_uid: Option<u32>,
     /// Say nothing more, and keep the connection open, from a command whose line has this in it.
     pub(crate) stall_on: Option<String>,
+    /// Stall a matching command once across all connections.
+    pub(crate) stall_once_on: Option<String>,
     /// Answer a command whose line has this in it one byte at a time, with a pause after each.
     pub(crate) drip_on: Option<(String, Duration)>,
     /// What to say, once signed in, in place of the truth to a command whose line has the first
@@ -597,7 +599,11 @@ fn serve_imap(stream: TcpStream, shared: Arc<Mutex<ImapWorld>>) {
         if world.hang_up_on.as_ref().is_some_and(|text| line.contains(text.as_str())) {
             return;
         }
-        if world.stall_on.as_ref().is_some_and(|text| line.contains(text.as_str())) {
+        let stall_once = world.stall_once_on.as_ref().is_some_and(|text| line.contains(text.as_str()));
+        if stall_once {
+            world.stall_once_on = None;
+        }
+        if stall_once || world.stall_on.as_ref().is_some_and(|text| line.contains(text.as_str())) {
             drop(world);
             // Not another word, for as long as the client keeps the connection.
             while read_line(&mut reader).is_some() {}

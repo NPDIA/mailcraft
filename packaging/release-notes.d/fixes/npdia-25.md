@@ -1,0 +1,1 @@
+- Recover once from IMAP folder LIST or STATUS timeouts. A LIST retry preserves existing folder mappings, and a STATUS timeout can continue with direct folder reads without repeating completed writes. [Fork #25](https://github.com/NPDIA/mailcraft/issues/25)

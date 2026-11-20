@@ -1,0 +1,1 @@
+| 2026-11-20 | The NPDIA fork retries a timed-out IMAP folder listing on a fresh connection and falls back to direct folder reads after a STATUS timeout. The recovery shares one reconnect per run and preserves pending and completed work. [Fork #25](https://github.com/NPDIA/mailcraft/issues/25) |

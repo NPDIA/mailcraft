@@ -3988,6 +3988,11 @@ msgstr "“{name}”의 Gmail 범주를 읽지 못했습니다"
 
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
+msgid "Couldn't read folder status"
+msgstr "폴더 상태를 읽지 못했습니다"
+
+#. why a mail server couldn't be used
+#: crates/net/src/sync.rs
 #, fuzzy
 msgid "Couldn't read the list of folders"
 msgstr "폴더 목록을 읽지 못했습니다"
