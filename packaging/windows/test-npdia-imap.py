@@ -66,6 +66,50 @@ $Leaf = $LeafRequest.Create($Root, $Now.AddMinutes(-2), $Now.AddMinutes(20), [by
 [IO.File]::WriteAllText((Join-Path $Directory 'server-key.pem'), $LeafKey.ExportPkcs8PrivateKeyPem())
 """
 
+UPDATE_MACHINE_ROOT = r"""
+using namespace System.Security.Cryptography.X509Certificates
+using namespace System.Security.Principal
+param(
+  [string] $CertificatePath,
+  [ValidatePattern('^[0-9a-fA-F]{40}$')] [string] $Thumbprint,
+  [ValidateSet('Add', 'Remove')] [string] $Action
+)
+$ErrorActionPreference = 'Stop'
+if (-not $IsWindows -or $env:GITHUB_ACTIONS -cne 'true' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+  throw 'The Windows fixture requires a disposable GitHub-hosted Actions runner.'
+}
+$Identity = [WindowsIdentity]::GetCurrent()
+try {
+  $Principal = [WindowsPrincipal]::new($Identity)
+  if (-not $Principal.IsInRole([WindowsBuiltInRole]::Administrator)) {
+    throw 'The Windows fixture requires elevation to update the LocalMachine root store.'
+  }
+} finally {
+  $Identity.Dispose()
+}
+$Certificate = [X509Certificate2]::new($CertificatePath)
+$Store = [X509Store]::new([StoreName]::Root, [StoreLocation]::LocalMachine)
+try {
+  if ($Certificate.Thumbprint -ine $Thumbprint) { throw 'Unexpected fixture CA thumbprint.' }
+  $Store.Open([OpenFlags]::ReadWrite -bor [OpenFlags]::OpenExistingOnly)
+  $Entries = $Store.Certificates.Find([X509FindType]::FindByThumbprint, $Thumbprint, $false)
+  if ($Action -eq 'Add') {
+    if ($Entries.Count -ne 0) { throw 'The temporary CA already exists in the LocalMachine root store.' }
+    $Store.Add($Certificate)
+    $ExpectedCount = 1
+  } else {
+    foreach ($Entry in $Entries) { $Store.Remove($Entry) }
+    $ExpectedCount = 0
+  }
+  if ($Store.Certificates.Find([X509FindType]::FindByThumbprint, $Thumbprint, $false).Count -ne $ExpectedCount) {
+    throw "Could not verify the temporary CA after '$Action' in the LocalMachine root store."
+  }
+} finally {
+  $Store.Dispose()
+  $Certificate.Dispose()
+}
+"""
+
 
 def call(args, *, env=None, password="", success=True):
     result = subprocess.run(args, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
@@ -152,15 +196,21 @@ def test(cli, directory):
     certificate_script = directory / "certificates.ps1"
     certificate_script.write_text(CREATE_CERTIFICATES, encoding="ascii")
     call(["pwsh", "-NoProfile", "-NonInteractive", "-File", certificate_script, directory])
-    certificate = directory / "ca.cer"
-    thumbprint = hashlib.sha1(certificate.read_bytes(), usedforsecurity=False).hexdigest()
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(directory / "server.pem", directory / "server-key.pem")
     password = secrets.token_hex(16)
     environment = dict(os.environ, MAILCRAFT_PASSWORD=password)
     # A distinct process for each attempt makes the newly installed trust visible to the verifier.
-    if os.name != "nt":
+    store_command = None
+    if os.name == "nt":
+        certificate = directory / "ca.cer"
+        thumbprint = hashlib.sha1(certificate.read_bytes(), usedforsecurity=False).hexdigest()
+        store_script = directory / "update-machine-root.ps1"
+        store_script.write_text(UPDATE_MACHINE_ROOT, encoding="ascii")
+        store_command = ["pwsh", "-NoProfile", "-NonInteractive", "-File", store_script,
+                         "-CertificatePath", certificate, "-Thumbprint", thumbprint, "-Action"]
+    else:
         environment.pop("SSL_CERT_FILE", None)
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener, ThreadPoolExecutor(max_workers=1) as pool:
         listener.bind(("127.0.0.1", 0))
@@ -177,16 +227,16 @@ def test(cli, directory):
         if "CERTIFICATE" not in alert and "UNKNOWN_CA" not in alert:
             raise RuntimeError(f"Untrusted handshake did not fail with a certificate alert: {alert}")
         try:
-            if os.name == "nt":
-                call(["certutil.exe", "-user", "-f", "-addstore", "Root", certificate])
+            if store_command:
+                call([*store_command, "Add"])
             else:
                 environment["SSL_CERT_FILE"] = str(directory / "ca.pem")
             session = pool.submit(imap, listener, context, password)
             call(sync, env=environment, password=password)
             result = session.result(timeout=20)
         finally:
-            if os.name == "nt":
-                call(["certutil.exe", "-user", "-delstore", "Root", thumbprint])
+            if store_command:
+                call([*store_command, "Remove"])
         inbox = json.loads(call([cli, "list", mailbox, "--folder", "inbox"]).stdout)
         messages = inbox["messages"]
         if len(messages) != 1 or messages[0]["subject"] != SUBJECT:
