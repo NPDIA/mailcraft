@@ -1,0 +1,88 @@
+# SPDX-FileCopyrightText: MailCraft contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+name: NPDIA RC2 release handoff
+
+on:
+  push:
+    branches: [release/2-upload-rc2]
+    paths: [.github/workflows/npdia-upload-rc2.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: npdia-upload-rc2
+
+jobs:
+  upgrade:
+    if: github.repository == 'NPDIA/mailcraft'
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: 2af91c63166cdf1636b34de661135e12958478b8
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44666756689
+          name: MailCraft_NPDIA_Custom-0.13.9-rc.1-windows-x64
+          path: rc1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44675967743
+          name: MailCraft_NPDIA_Custom-0.13.9-rc.2-windows-x64
+          path: rc2
+      - name: Verify and exercise the released installer pair
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $Previous = 'rc1/MailCraft_NPDIA_Custom-0.13.9-rc.1-windows-x64.exe'
+          $Installer = 'rc2/MailCraft_NPDIA_Custom-0.13.9-rc.2-windows-x64.exe'
+          if ((Get-FileHash -LiteralPath $Previous).Hash -ine 'b9dc9b16685cd5ba9f95aa4e9e435400b350e5eaf5990acace457c21e0a1573e') { throw 'Unexpected RC1 installer hash.' }
+          if ((Get-FileHash -LiteralPath $Installer).Hash -ine '4b40dfb79130775b01f8507319767088d35d3d74c40fdf6dd1820c6b993b0a1d') { throw 'Unexpected RC2 installer hash.' }
+          ./packaging/windows/test-npdia-installer.ps1 -Version 0.13.9-rc.2 -Installer $Installer -PreviousInstaller $Previous
+          Copy-Item -LiteralPath rc2/installer-smoke.json -Destination installer-upgrade-rollback.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: npdia-rc2-upgrade-rollback
+          path: installer-upgrade-rollback.json
+          if-no-files-found: error
+
+  upload:
+    needs: upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44675967743
+          name: MailCraft_NPDIA_Custom-0.13.9-rc.2-windows-x64
+          path: rc2
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: npdia-rc2-upgrade-rollback
+      - name: Upload the verified assets to the release draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag=0.13.9-rc.2
+          source=2af91c63166cdf1636b34de661135e12958478b8
+          installer=MailCraft_NPDIA_Custom-$tag-windows-x64.exe
+          expected=4b40dfb79130775b01f8507319767088d35d3d74c40fdf6dd1820c6b993b0a1d
+          printf '%s  %s\n' "$expected" "rc2/$installer" | sha256sum --check
+          jq --exit-status --arg source "$source" --arg digest "$expected" '.source_commit == $source and .installer_sha256 == $digest' rc2/BUILDINFO.json
+          jq --exit-status --arg tag "$tag" '.cli_version == $tag and .rollback == "passed" and .upgrade_english == "passed from supplied earlier installer"' installer-upgrade-rollback.json
+          gh release view "$tag" --repo NPDIA/mailcraft --json isDraft,isPrerelease,targetCommitish |
+            jq --exit-status --arg source "$source" '.isDraft and .isPrerelease and .targetCommitish == $source'
+          gh release upload "$tag" --repo NPDIA/mailcraft \
+            "rc2/$installer" rc2/BUILDINFO.json rc2/SHA256SUMS.txt rc2/installer-smoke.json installer-upgrade-rollback.json
