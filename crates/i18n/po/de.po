@@ -4870,6 +4870,11 @@ msgstr "Endet an einem Tag"
 msgid "Enter a date and a time."
 msgstr "Geben Sie ein Datum und eine Uhrzeit ein."
 
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Enter addresses that your provider lets this account send from, separated by semicolons."
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 msgid "Equation"
@@ -13318,6 +13323,11 @@ msgid "Sending"
 msgstr "Senden"
 
 #. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Sending aliases"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/ews_mail.rs crates/ui-egui/src/inbox_pass.rs crates/ui-egui/src/jmap_mail.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/shared_mailboxes.rs
 #, fuzzy
 msgid "Sending and receiving…"
@@ -19520,6 +19530,11 @@ msgid "an account becomes an Exchange server account, or stops being one, only b
 msgstr "Ein Konto kann nur dadurch zu einem Exchange-Server-Konto werden oder aufhören, eines zu sein, indem Sie es entfernen und erneut hinzufügen"
 
 #. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "an account can have at most {n} sending aliases"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "an account can't be put before itself"
@@ -19592,6 +19607,11 @@ msgid "choose a time within a year"
 msgstr "wählen Sie eine Zeit innerhalb eines Jahres"
 
 #. what a command says
+#: crates/engine/src/cmd/compose.rs
+msgid "choose the From address in the compose window"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/mail.rs
 #, fuzzy
 msgid "close a conversation first: each of the 1,000 open has a message selected"
@@ -19606,6 +19626,11 @@ msgstr "aus E-Mails gesammelt"
 #: crates/engine/src/gmail.rs
 msgid "comes once Google has reviewed MailCraft"
 msgstr "ist verfügbar, sobald Google MailCraft überprüft hat"
+
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "configure sending aliases in Account Settings"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/proto/src/lib.rs
@@ -20485,6 +20510,11 @@ msgstr "wählen Sie zuerst eine Aufgabe aus"
 msgid "select an appointment first"
 msgstr "wählen Sie zuerst einen Termin aus"
 
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "sending aliases need an IMAP account with an outgoing SMTP server"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposeModel.kt
 #, fuzzy
@@ -21083,6 +21113,11 @@ msgstr "die Suche kann nicht nach der vollständigen Adresse dieses Absenders su
 #, fuzzy
 msgid "the search involves no mailbox of a Microsoft account"
 msgstr "die Suche betrifft kein Postfach eines Microsoft-Kontos"
+
+#. what a command says, why a mail server couldn't be used
+#: crates/engine/src/cmd/compose.rs crates/net/src/send.rs
+msgid "the selected sending alias isn't configured for this account"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs

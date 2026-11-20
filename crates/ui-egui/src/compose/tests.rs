@@ -963,3 +963,27 @@ fn an_html_signature_is_shown_as_it_goes_out_until_edited_as_text() {
     // Edited, it is the copy that goes out: there is no way back to the HTML.
     assert!(h.state().hit.rect("composeSignatureAsHtml", 0).is_none());
 }
+
+#[test]
+fn send_alias_is_selectable_with_only_one_account() {
+    use egui_kittest::kittest::Queryable as _;
+
+    let mut a = MailApp::new(Session::empty(), Services::default());
+    let id = a
+        .execute(
+            "account.add",
+            json!({"email": "owner@example.org", "outgoing": {"host": "smtp.example.org", "port": 465}, "sendAliases": ["support@example.org"]}),
+        )
+        .unwrap()["id"]
+        .as_u64()
+        .unwrap();
+    a.execute("mail.new", json!({"account": id})).unwrap();
+    let mut h = window(a);
+    h.get_by_label("From").click();
+    h.run_steps(2);
+    h.get_by_label("support@example.org").click();
+    h.run_steps(2);
+    let compose = h.state().session.compose.as_ref().unwrap();
+    assert_eq!(compose.account, id);
+    assert_eq!(compose.from_alias.as_deref(), Some("support@example.org"));
+}

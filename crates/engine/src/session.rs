@@ -668,6 +668,9 @@ pub struct Compose {
     pub draft: Option<Id>,
     /// The account it is sent from.
     pub account: Id,
+    /// Explicit From address; none uses the primary address of the account.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub from_alias: Option<String>,
     pub to: String,
     pub cc: String,
     pub bcc: String,

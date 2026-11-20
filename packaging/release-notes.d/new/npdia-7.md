@@ -1,0 +1,1 @@
+- Choose a registered sending alias in From when composing mail. Add aliases to an IMAP account in Account Settings and send through the account's existing outgoing server ([#7](https://github.com/NPDIA/mailcraft/issues/7)).

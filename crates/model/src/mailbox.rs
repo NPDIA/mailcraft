@@ -414,6 +414,9 @@ pub struct Account {
     /// Settings (#1017).
     pub name: String,
     pub email: String,
+    /// Addresses this IMAP account may send as through its outgoing server.
+    #[serde(skip_serializing_if = "Vec::is_empty", deserialize_with = "crate::sync::lenient_list")]
+    pub send_aliases: Vec<String>,
     /// The owner's name, as recipients see it.
     pub display_name: String,
     pub kind: AccountKind,
@@ -782,6 +785,24 @@ impl Directory {
 }
 
 impl Account {
+    /// Most alternate senders one account may configure.
+    pub const MAX_SEND_ALIASES: usize = 16;
+
+    /// The configured address, with the account's display name, if SMTP may send as it.
+    pub fn send_alias(&self, email: &str) -> Option<crate::Address> {
+        if self.kind != AccountKind::Imap || self.outgoing.is_none() || self.is_shared() || self.email.trim().eq_ignore_ascii_case(email) {
+            return None;
+        }
+        let address = self.send_aliases.iter().take(Self::MAX_SEND_ALIASES).find(|alias| alias.eq_ignore_ascii_case(email))?;
+        Some(crate::Address::new(&self.display_name, crate::mailbox_address(address)?))
+    }
+
+    /// Is this an address the owner sends mail from with this account?
+    pub fn owns_address(&self, email: &str) -> bool {
+        let email = email.trim();
+        !email.is_empty() && (self.email.trim().eq_ignore_ascii_case(email) || self.send_alias(email).is_some())
+    }
+
     /// The name of the signature replies and forwards start with (empty for none).
     pub fn reply_signature(&self) -> &str {
         self.reply_signature.as_deref().unwrap_or(&self.signature)

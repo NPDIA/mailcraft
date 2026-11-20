@@ -178,6 +178,7 @@ struct Shown {
     dirty: bool,
     draft: bool,
     account: u64,
+    from_alias: Option<String>,
     to: String,
     cc: String,
     bcc: String,
@@ -199,6 +200,7 @@ impl Shown {
             dirty: c.dirty,
             draft: c.draft.is_some(),
             account: c.account,
+            from_alias: c.from_alias.clone(),
             to: c.to.clone(),
             cc: c.cc.clone(),
             bcc: c.bcc.clone(),
@@ -433,27 +435,46 @@ fn header(app: &mut MailApp, ui: &mut Ui, c: &Shown, focus_to: bool) {
         .map(|label| ui.painter().layout_no_wrap(label.to_owned(), regular(12.0), t.text_dim).size().x + 8.0)
         .fold(MIN_LABEL_WIDTH, f32::max)
         .min(label_limit);
-    // From, when there is a choice.
-    if app.session.mailbox.accounts.len() > 1 {
+    // In folder-pane order (#702), with each account's own aliases just below it.
+    let mut senders = Vec::new();
+    let several_accounts = app.session.mailbox.accounts.len() > 1;
+    for account in app.session.mailbox.accounts_in_order() {
+        senders.push((account.id, None, account.address().full()));
+        for email in account.send_aliases.iter().take(mailcraft_model::Account::MAX_SEND_ALIASES) {
+            if let Some(address) = account.send_alias(email) {
+                let label = address.full();
+                let label = if several_accounts { format!("{label} ({})", account.email) } else { label };
+                senders.push((account.id, Some(address.email), label));
+            }
+        }
+    }
+    let shows_from = senders.len() > 1 || c.from_alias.is_some();
+    if shows_from {
         let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), 30.0), Sense::hover());
         paint_clipped(ui.painter(), pos2(r.min.x + 16.0, r.center().y), (label_width - 8.0).max(0.0), from, regular(12.0), t.text_dim);
-        let current = app.session.mailbox.account(c.account).map(|a| a.address().full()).unwrap_or_default();
+        let current = senders
+            .iter()
+            .find(|(id, alias, _)| *id == c.account && alias == &c.from_alias)
+            .map(|(_, _, label)| label.as_str())
+            .or(c.from_alias.as_deref())
+            .unwrap_or_default();
         let end = r.max.x - 12.0;
         let pick = Rect::from_min_max(pos2((r.min.x + 16.0 + label_width).min(end), r.min.y + 4.0), pos2(end, r.max.y - 4.0));
         let resp = ui.interact(pick, ui.scope_id().with("compose_from"), Sense::click());
+        resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, from));
         if resp.hovered() {
             ui.painter().rect_filled(pick.expand2(vec2(4.0, 0.0)), 4.0, t.hover);
         }
         paint_clipped(ui.painter(), pos2(pick.min.x, pick.center().y), pick.width(), &format!("{current} ▾"), regular(13.0), t.text);
-        // (In the order of the folder pane, #702.)
-        let accounts: Vec<(u64, String)> = app.session.mailbox.accounts_in_order().into_iter().map(|a| (a.id, a.address().full())).collect();
         egui::Popup::menu(&resp).show(|ui| {
-            for (id, label) in accounts {
-                if ui.selectable_label(id == c.account, label).clicked() {
-                    let _ = app.execute("compose.set", json!({"account": id}));
-                    ui.close();
+            egui::ScrollArea::vertical().max_height(320.0).show(ui, |ui| {
+                for (id, alias, label) in senders {
+                    if ui.selectable_label(id == c.account && alias == c.from_alias, label).clicked() {
+                        let _ = app.execute("compose.set", json!({"account": id, "fromAlias": alias}));
+                        ui.close();
+                    }
                 }
-            }
+            });
         });
         ui.painter().line_segment([pos2(r.min.x + 16.0, r.max.y), pos2(r.max.x - 12.0, r.max.y)], Stroke::new(1.0, t.border));
     }
@@ -473,10 +494,7 @@ fn header(app: &mut MailApp, ui: &mut Ui, c: &Shown, focus_to: bool) {
     if bcc_link(app) {
         // A quiet way to get the Bcc line.
         let last = ui.min_rect();
-        let br = Rect::from_min_size(
-            pos2(last.max.x - 12.0 - bcc_width, top + if app.session.mailbox.accounts.len() > 1 { 34.0 } else { 4.0 }),
-            vec2(bcc_width, 22.0),
-        );
+        let br = Rect::from_min_size(pos2(last.max.x - 12.0 - bcc_width, top + if shows_from { 34.0 } else { 4.0 }), vec2(bcc_width, 22.0));
         let resp = ui.interact(br, ui.scope_id().with("show_bcc"), Sense::click());
         let color = if resp.hovered() { t.accent_text } else { t.text_dim };
         ui.painter().with_clip_rect(br).text(br.center(), Align2::CENTER_CENTER, bcc, regular(11.5), color);

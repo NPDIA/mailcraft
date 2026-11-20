@@ -505,6 +505,7 @@ fn message() -> impl Strategy<Value = Message> {
             in_reply_to,
             references,
             from,
+            send_as_alias: true,
             reply_to,
             to,
             cc,

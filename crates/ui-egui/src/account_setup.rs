@@ -453,6 +453,8 @@ pub struct AccountSetup {
     /// For the settings of an account: the name the folder pane calls it by, empty while that is
     /// its address (#1017).
     account_name: String,
+    /// SMTP aliases, separated by semicolons, in an existing IMAP account.
+    send_aliases: Option<String>,
     /// Advanced options are shown.
     advanced: bool,
     /// Skip detection and ask for the kind of account.
@@ -614,6 +616,7 @@ impl AccountSetup {
             email: String::new(),
             name: String::new(),
             account_name: String::new(),
+            send_aliases: None,
             advanced: false,
             manual: false,
             picked: false,
@@ -725,6 +728,9 @@ impl AccountSetup {
         w.incoming = ServerFields::of(a.incoming.as_ref());
         w.outgoing = ServerFields::of(a.outgoing.as_ref());
         w.outgoing_without_sign_in = a.outgoing_without_sign_in;
+        if a.kind == AccountKind::Imap && !a.is_shared() {
+            w.send_aliases = Some(a.send_aliases.join("; "));
+        }
         if let Some(oauth) = &a.oauth {
             w.client_id = line(&oauth.client_id, 200);
             w.tenant = line(&oauth.tenant, 64);
@@ -904,6 +910,10 @@ impl AccountSetup {
             "incoming": self.incoming.value(),
             "outgoing": self.outgoing.value(),
         }));
+        if let Some(aliases) = self.send_aliases.as_deref() {
+            let aliases: Vec<_> = aliases.split([';', ',']).map(str::trim).filter(|address| !address.is_empty()).collect();
+            m.insert("sendAliases".into(), json!(aliases));
+        }
         if self.oauth.is_some() {
             m.insert("clientId".into(), json!(self.client_id.trim()));
             m.insert("tenant".into(), json!(self.tenant.trim()));
@@ -2439,6 +2449,10 @@ impl AccountSetup {
             field(ui, pass, "accountName", tl!("Account name"), &mut self.account_name, &address, LINE);
             note(ui, tl!("Shown in the folder pane, such as Work or Home. Leave it empty to show the address."), t.text_dim);
             field(ui, pass, "name", tl!("Your name"), &mut self.name, tl!("As the people you write to see it"), LINE);
+            if let Some(aliases) = self.send_aliases.as_mut() {
+                field(ui, pass, "sendAliases", tl!("Sending aliases"), aliases, "", Account::MAX_SEND_ALIASES * (mailcraft_model::MAX_ADDRESS + 2));
+                note(ui, tl!("Enter addresses that your provider lets this account send from, separated by semicolons."), t.text_dim);
+            }
             if asks {
                 self.password_field(ui, pass, app.secret_watch(), tl!("Leave empty to keep the one in use"));
             }

@@ -4967,6 +4967,11 @@ msgstr "Eindigt op een dag"
 msgid "Enter a date and a time."
 msgstr "Voer een datum en een tijd in."
 
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Enter addresses that your provider lets this account send from, separated by semicolons."
+msgstr ""
+
 #. ribbon
 #: crates/ui-egui/src/ribbon.rs
 msgid "Equation"
@@ -13698,6 +13703,11 @@ msgid "Sending"
 msgstr "Bezig met verzenden"
 
 #. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Sending aliases"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/chrome.rs crates/ui-egui/src/ews_mail.rs crates/ui-egui/src/inbox_pass.rs crates/ui-egui/src/jmap_mail.rs crates/ui-egui/src/lib.rs crates/ui-egui/src/shared_mailboxes.rs
 #, fuzzy
 msgid "Sending and receiving…"
@@ -20203,6 +20213,11 @@ msgid "an account becomes an Exchange server account, or stops being one, only b
 msgstr "een account wordt een Exchange-serveraccount, of houdt op dat te zijn, alleen door het te verwijderen en opnieuw toe te voegen"
 
 #. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "an account can have at most {n} sending aliases"
+msgstr ""
+
+#. what a command says
 #: crates/model/src/mailbox.rs
 #, fuzzy
 msgid "an account can't be put before itself"
@@ -20281,6 +20296,11 @@ msgid "choose a time within a year"
 msgstr "kies een tijd binnen een jaar"
 
 #. what a command says
+#: crates/engine/src/cmd/compose.rs
+msgid "choose the From address in the compose window"
+msgstr ""
+
+#. what a command says
 #: crates/engine/src/cmd/mail.rs
 #, fuzzy
 msgid "close a conversation first: each of the 1,000 open has a message selected"
@@ -20297,6 +20317,11 @@ msgstr "verzameld uit e-mail"
 #, fuzzy
 msgid "comes once Google has reviewed MailCraft"
 msgstr "komt zodra Google MailCraft heeft beoordeeld"
+
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "configure sending aliases in Account Settings"
+msgstr ""
 
 #. why a mail server couldn't be used
 #: crates/proto/src/lib.rs
@@ -21234,6 +21259,11 @@ msgstr "selecteer eerst een taak"
 msgid "select an appointment first"
 msgstr "selecteer eerst een afspraak"
 
+#. what a command says
+#: crates/engine/src/cmd/account.rs
+msgid "sending aliases need an IMAP account with an outgoing SMTP server"
+msgstr ""
+
 #. android
 #: apps/mailcraft-android/app/src/main/kotlin/work/mailcraft/android/ComposeModel.kt
 #, fuzzy
@@ -21869,6 +21899,11 @@ msgstr "de zoekopdracht kan niet op het volledige adres van deze afzender zoeken
 #, fuzzy
 msgid "the search involves no mailbox of a Microsoft account"
 msgstr "de zoekopdracht betreft geen postvak van een Microsoft-account"
+
+#. what a command says, why a mail server couldn't be used
+#: crates/engine/src/cmd/compose.rs crates/net/src/send.rs
+msgid "the selected sending alias isn't configured for this account"
+msgstr ""
 
 #. what a command says
 #: crates/engine/src/cmd/rules.rs

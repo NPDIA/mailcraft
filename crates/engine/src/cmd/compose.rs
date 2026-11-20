@@ -21,6 +21,10 @@ use crate::{BodyFormat, CmdError, CmdResult, CommandSpec, Compose, ComposeMode, 
 pub const MAX_ATTACHMENT: usize = 64 << 20;
 const MAX_ATTACHMENTS: usize = 200;
 
+#[cfg(test)]
+#[path = "send_alias_tests.rs"]
+mod send_alias_tests;
+
 pub fn specs() -> Vec<CommandSpec> {
     vec![
         CommandSpec::new("mail.new", "New Email", "Home › New", new)
@@ -47,7 +51,7 @@ pub fn specs() -> Vec<CommandSpec> {
             .selection(needs_message),
         CommandSpec::new("compose.set", "Edit Message", "Message", set)
             .pure()
-            .params(r#"{"to"?: string, "cc"?: string, "bcc"?: string, "subject"?: string, "body"?: string, "importance"?: "low"|"normal"|"high", "account"?: number}"#)
+            .params(r#"{"to"?: string, "cc"?: string, "bcc"?: string, "subject"?: string, "body"?: string, "importance"?: "low"|"normal"|"high", "account"?: number, "fromAlias"?: string|null (a configured SMTP alias, or null for the account address)}"#)
             .when_writing(needs_compose),
         CommandSpec::new("compose.attach", "Attach File", "Message › Include", attach)
             .pure()
@@ -472,7 +476,9 @@ fn respond(s: &mut Session, v: &Value, mode: ComposeMode) -> CmdResult {
         _ => reply_source(s, v)?,
     };
     let mine: Vec<String> = s.mailbox.accounts.iter().map(|a| a.email.to_lowercase()).filter(|e| !e.is_empty()).collect();
-    let is_mine = |a: &Address| mine.contains(&a.email.to_lowercase());
+    let is_mine = |address: &Address| {
+        mine.contains(&address.email.to_lowercase()) || s.mailbox.accounts.iter().any(|account| account.send_alias(&address.email).is_some())
+    };
     let (to, cc) = match mode {
         ComposeMode::Forward => (Vec::new(), Vec::new()),
         _ => {
@@ -915,7 +921,7 @@ fn resend(s: &mut Session, v: &Value) -> CmdResult {
     if m.draft {
         return Err(fail("that message is a draft: open it to send it"));
     }
-    let mine = s.mailbox.accounts.iter().any(|a| !a.email.is_empty() && a.email.eq_ignore_ascii_case(m.from.email.trim()));
+    let mine = s.mailbox.accounts.iter().any(|account| account.owns_address(&m.from.email));
     if !mine {
         return Err(fail("only a message you sent can be sent again"));
     }
@@ -1027,6 +1033,8 @@ fn reopened(s: &Session, m: &Message) -> Compose {
     let attachments: Vec<Attachment> = attachments.into_iter().filter(|a| !taken.contains(&a.content_id)).collect();
     Compose {
         account: m.account,
+        from_alias: (m.send_as_alias || s.mailbox.account(m.account).is_some_and(|a| a.send_alias(&m.from.email).is_some()))
+            .then(|| m.from.email.clone()),
         to: format_list(&m.to),
         cc: format_list(&m.cc),
         bcc: format_list(&m.bcc),
@@ -1064,6 +1072,22 @@ fn set(s: &mut Session, v: &Value) -> CmdResult {
         Some(i) => Some(Importance::parse(i).ok_or_else(|| bad("`importance` is low, normal or high"))?),
         None => None,
     };
+    if s.agent.is_some() && v.get("fromAlias").is_some() {
+        return Err(fail("choose the From address in the compose window"));
+    }
+    let from_alias = match v.get("fromAlias") {
+        Some(Value::String(email)) => {
+            let account = account.or_else(|| s.compose.as_ref().map(|c| c.account));
+            let from = account
+                .and_then(|id| s.mailbox.account(id))
+                .and_then(|a| a.send_alias(email))
+                .ok_or_else(|| fail("the selected sending alias isn't configured for this account"))?;
+            Some(Some(from.email))
+        }
+        Some(Value::Null) => Some(None),
+        Some(_) => return Err(bad("`fromAlias` is an e-mail address or null")),
+        None => None,
+    };
     // Sent from another account, the message takes that account's signature, unless the owner
     // edited the one in it.
     // ponytail: a message that started with no signature gets none; add one when owners ask.
@@ -1088,8 +1112,14 @@ fn set(s: &mut Session, v: &Value) -> CmdResult {
     if let Some(i) = importance {
         c.importance = i;
     }
-    if let Some(a) = account {
+    if let Some(a) = account
+        && c.account != a
+    {
         c.account = a;
+        c.from_alias = None;
+    }
+    if let Some(from_alias) = from_alias {
+        c.from_alias = from_alias;
     }
     if *c != before {
         c.dirty = true;
@@ -1338,6 +1368,19 @@ fn build_as(s: &Session, c: &Compose, strict: bool, message_id: Option<&str>) ->
     if strict && to.is_empty() && cc.is_empty() && bcc.is_empty() {
         return Err(fail("add at least one recipient"));
     }
+    let from = match c.from_alias.as_deref() {
+        Some(email) if c.account == account.id => {
+            match account.send_alias(email) {
+                Some(address) => address,
+                // Saving an existing draft must not silently change its sender. Sending waits
+                // for the owner to select a currently authorized address.
+                None if !strict => Address::new(&account.display_name, email),
+                None => return Err(fail("the selected sending alias isn't configured for this account")),
+            }
+        }
+        Some(_) => return Err(fail("the selected sending alias isn't configured for this account")),
+        None => account.address(),
+    };
     let now = s.now();
     let domain = account.email.rsplit_once('@').map_or("", |(_, d)| d);
     let message_id = match message_id {
@@ -1352,7 +1395,8 @@ fn build_as(s: &Session, c: &Compose, strict: bool, message_id: Option<&str>) ->
         account: account.id,
         in_reply_to: c.in_reply_to.clone(),
         references: c.references.clone(),
-        from: account.address(),
+        from,
+        send_as_alias: c.from_alias.is_some(),
         to,
         cc,
         bcc,
