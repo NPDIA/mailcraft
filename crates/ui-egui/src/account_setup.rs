@@ -2596,9 +2596,14 @@ impl AccountSetup {
         pass.field(&resp);
     }
 
-    /// The user name and the two servers.
+    /// The sign-in identifier and the two servers.
     fn settings(&mut self, ui: &mut Ui, pass: &mut Pass) {
-        field(ui, pass, "username", tl!("User name"), &mut self.username, tl!("Usually the whole address"), LINE);
+        let (label, hint) = if self.incoming.host.trim().trim_end_matches('.').eq_ignore_ascii_case("ezmail.bizmeka.com") {
+            (tl!("Login email address"), tl!("Full company email address"))
+        } else {
+            (tl!("Login ID"), tl!("Usually the whole address"))
+        };
+        field(ui, pass, "username", label, &mut self.username, hint, LINE);
         server_row(ui, pass, tl!("Incoming mail (IMAP)"), "incoming", &mut self.incoming, "imap.example.org", (993, 143));
         server_row(ui, pass, tl!("Outgoing mail (SMTP)"), "outgoing", &mut self.outgoing, "smtp.example.org", (465, 587));
         // A relay that takes mail without a sign-in (#836). A token always goes, so an account
@@ -4097,12 +4102,15 @@ mod tests {
         let synced = syncs(&mut a);
         let server = json!({"email": "noor@lumen.example", "displayName": "Noor", "incoming": {"host": "imap.lumen.example"}, "outgoing": {"host": "smtp.lumen.example"}});
         let id = a.execute("account.add", server).unwrap()["id"].as_u64().unwrap();
+        let bizmeka = json!({"email": "hana@example.org", "incoming": {"host": "EZMAIL.BIZMEKA.COM."}});
+        let bizmeka = a.execute("account.add", bizmeka).unwrap()["id"].as_u64().unwrap();
         let cloud = json!({"email": "ada@lumen.example", "auth": "oauth2", "provider": "microsoft", "incoming": {"host": "outlook.office365.com"}});
         let cloud = a.execute("account.add", cloud).unwrap()["id"].as_u64().unwrap();
 
         let mut h = open(a, json!({"id": id}));
         assert_eq!((page(&h), wizard(&h).map(|w| w.title())), (Some(Page::Settings), Some("Account Settings".to_string())));
         assert!(says(&h, "Signs in with a password") && says(&h, "Incoming mail (IMAP)") && !says(&h, "Tenant"));
+        assert!(says(&h, "Login ID") && !says(&h, "Login email address"));
         assert!(h.query_by_role(Role::PasswordInput).is_some());
         assert!(h.get_all_by_role(Role::TextInput).any(|field| field.value().as_deref() == Some("imap.lumen.example")));
         // A new name and a new password: the name goes into the account, the password to this
@@ -4117,6 +4125,12 @@ mod tests {
         assert!(!serde_json::to_string(&h.state().session.mailbox.accounts).unwrap().contains(TYPED));
         h.state_mut().execute("ui.sync", json!({"account": id})).unwrap();
         assert_eq!(synced.lock().unwrap()[0].2, TYPED);
+
+        h.state_mut().execute("ui.dialog", json!({"name": "account", "id": bizmeka})).unwrap();
+        h.run_steps(4);
+        assert!(says(&h, "Login email address") && !says(&h, "Login ID"));
+        assert_eq!(wizard(&h).unwrap().login("hana@example.org"), "hana@example.org");
+        click(&mut h, "Cancel");
 
         // An account that signs in on Microsoft's page has no password to type.
         h.state_mut().execute("ui.dialog", json!({"name": "account", "id": cloud})).unwrap();
@@ -4144,7 +4158,7 @@ mod tests {
         assert_eq!(page(&h), Some(Page::Settings));
         assert!(says(&h, "Signs in on the Microsoft page") && says(&h, "kept in step through Microsoft Graph"));
         assert!(says(&h, "Application (client) ID") && says(&h, "Tenant") && says(&h, "Mail to keep offline"));
-        assert!(!says(&h, "User name") && !says(&h, "Incoming mail (IMAP)") && !says(&h, "Outgoing mail (SMTP)"));
+        assert!(!says(&h, "Login ID") && !says(&h, "Login email address") && !says(&h, "Incoming mail (IMAP)") && !says(&h, "Outgoing mail (SMTP)"));
         assert!(h.query_by_role(Role::PasswordInput).is_none());
         wizard_mut(&mut h).name = "Ada Lovelace".into();
         click(&mut h, "Save");
@@ -4166,7 +4180,12 @@ mod tests {
         let mut h = open(a, json!({"id": id}));
         assert_eq!((page(&h), wizard(&h).map(|w| w.title())), (Some(Page::Settings), Some("Account Settings".to_string())));
         assert!(says(&h, "This account was added by a newer version of MailCraft") && says(&h, "this version tells no mail server"));
-        assert!(!says(&h, "User name") && !says(&h, "Incoming mail (IMAP)") && h.query_by_role(Role::PasswordInput).is_none());
+        assert!(
+            !says(&h, "Login ID")
+                && !says(&h, "Login email address")
+                && !says(&h, "Incoming mail (IMAP)")
+                && h.query_by_role(Role::PasswordInput).is_none()
+        );
         assert!(wizard(&h).and_then(AccountSetup::edit_command).is_none());
         click(&mut h, "Close");
         assert_eq!(page(&h), None);

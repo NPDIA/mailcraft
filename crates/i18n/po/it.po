@@ -6199,6 +6199,11 @@ msgid "From:"
 msgstr "Da:"
 
 #. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Full company email address"
+msgstr ""
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Full details: and where, and the notes"
@@ -8237,6 +8242,17 @@ msgstr ""
 #, fuzzy
 msgid "Location"
 msgstr "Luogo"
+
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+#, fuzzy
+msgid "Login ID"
+msgstr "Nome utente"
+
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Login email address"
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/reading/invitation.rs
@@ -19659,7 +19675,7 @@ msgid "Use {address}"
 msgstr "Usa {address}"
 
 #. interface
-#: crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs
+#: crates/ui-egui/src/account_setup/exchange.rs
 #, fuzzy
 msgid "User name"
 msgstr "Nome utente"

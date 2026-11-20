@@ -6210,6 +6210,11 @@ msgid "From:"
 msgstr "보낸 사람:"
 
 #. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Full company email address"
+msgstr "회사 이메일 주소 전체"
+
+#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Full details: and where, and the notes"
@@ -8258,6 +8263,16 @@ msgstr "로컬, IMAP, Microsoft 계정을 이전할 수 있습니다."
 #, fuzzy
 msgid "Location"
 msgstr "위치"
+
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Login ID"
+msgstr "로그인 ID"
+
+#. interface
+#: crates/ui-egui/src/account_setup.rs
+msgid "Login email address"
+msgstr "로그인 이메일 주소"
 
 #. interface
 #: crates/ui-egui/src/reading/invitation.rs
@@ -19719,7 +19734,7 @@ msgid "Use {address}"
 msgstr "{address} 사용"
 
 #. interface
-#: crates/ui-egui/src/account_setup.rs crates/ui-egui/src/account_setup/exchange.rs
+#: crates/ui-egui/src/account_setup/exchange.rs
 #, fuzzy
 msgid "User name"
 msgstr "사용자 이름"
