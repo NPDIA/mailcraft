@@ -11626,8 +11626,8 @@ msgstr ""
 msgid "Seeing when other people are busy needs your permission: File › Info › Connect calendar and contacts"
 msgstr ""
 
-#. command label, name
-#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs
+#. command label, interface, name
+#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs crates/ui-egui/src/settings_transfer.rs
 msgid "Select All"
 msgstr ""
 

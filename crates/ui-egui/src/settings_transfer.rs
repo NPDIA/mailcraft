@@ -145,8 +145,20 @@ impl Dialog {
             None => {
                 ui.label(tl!("Choose what to transfer. The file contains account addresses and settings, and any rules you include."));
                 ui.label(tl!("Mail, passwords and sign-in tokens are kept out of the transfer."));
+                let accounts = profile_transfer::accounts(&app.session.mailbox);
+                self.selected.retain(|id| accounts.iter().any(|(eligible, _)| eligible == id));
+                let mut all_selected = !accounts.is_empty() && self.selected.len() == accounts.len();
+                let partially_selected = !self.selected.is_empty() && !all_selected;
+                let select_all = egui::Checkbox::new(&mut all_selected, tl!("Select All")).indeterminate(partially_selected);
+                if ui.add_enabled(!accounts.is_empty(), select_all).changed() {
+                    if all_selected {
+                        self.selected.extend(accounts.iter().map(|(id, _)| *id));
+                    } else {
+                        self.selected.clear();
+                    }
+                }
                 egui::ScrollArea::vertical().max_height(230.0).show(ui, |ui| {
-                    for (id, address) in profile_transfer::accounts(&app.session.mailbox) {
+                    for (id, address) in accounts {
                         check(ui, &mut self.selected, id, &address, true);
                     }
                 });

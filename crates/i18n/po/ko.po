@@ -14022,8 +14022,8 @@ msgstr "보안"
 msgid "Seeing when other people are busy needs your permission: File › Info › Connect calendar and contacts"
 msgstr "다른 사람의 바쁜 시간을 보려면 권한이 필요합니다: 파일 › 정보 › 일정 및 연락처 연결"
 
-#. command label, name
-#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs
+#. command label, interface, name
+#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs crates/ui-egui/src/settings_transfer.rs
 #, fuzzy
 msgid "Select All"
 msgstr "모두 선택"

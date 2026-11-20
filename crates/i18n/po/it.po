@@ -13975,8 +13975,8 @@ msgstr "Sicurezza"
 msgid "Seeing when other people are busy needs your permission: File › Info › Connect calendar and contacts"
 msgstr "Per vedere quando gli altri sono occupati serve l'autorizzazione: File › Informazioni › Collega calendario e contatti"
 
-#. command label, name
-#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs
+#. command label, interface, name
+#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs crates/ui-egui/src/settings_transfer.rs
 #, fuzzy
 msgid "Select All"
 msgstr "Seleziona tutto"

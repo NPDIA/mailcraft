@@ -13487,8 +13487,8 @@ msgstr "Beveiliging"
 msgid "Seeing when other people are busy needs your permission: File › Info › Connect calendar and contacts"
 msgstr "Zien wanneer andere personen bezet zijn, vereist uw toestemming: Bestand › Info › Agenda en contactpersonen verbinden"
 
-#. command label, name
-#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs
+#. command label, interface, name
+#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs crates/ui-egui/src/settings_transfer.rs
 msgid "Select All"
 msgstr "Alles selecteren"
 

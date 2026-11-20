@@ -13981,8 +13981,8 @@ msgstr "Biztonság"
 msgid "Seeing when other people are busy needs your permission: File › Info › Connect calendar and contacts"
 msgstr "Látva, hogy más emberek elfoglalt szüksége van az engedélyedre: Fájl › Info › Csatlakoztassa naptár és kapcsolatok"
 
-#. command label, name
-#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs
+#. command label, interface, name
+#: crates/engine/src/cmd/mail.rs crates/ui-egui/src/menubar.rs crates/ui-egui/src/settings_transfer.rs
 #, fuzzy
 msgid "Select All"
 msgstr "Az összes kiválasztása"
