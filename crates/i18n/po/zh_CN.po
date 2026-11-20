@@ -4048,11 +4048,6 @@ msgid "Courier New"
 msgstr "Courier New"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Create"
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Create Message"
@@ -4315,7 +4310,7 @@ msgid "Delete Conversation"
 msgstr "删除对话"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "删除文件夹"
@@ -4345,7 +4340,7 @@ msgid "Delete Recurring Item"
 msgstr "删除重复项目"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Reference Folder"
 msgstr ""
 
@@ -4396,6 +4391,11 @@ msgstr "回复后从收件箱中删除会议请求"
 #, fuzzy
 msgid "Delete on a conversation's row that takes more than one message asks first."
 msgstr "删除包含多封邮件的会话时，将先征求确认。"
+
+#. interface
+#: crates/ui-egui/src/dialogs.rs
+msgid "Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -5855,7 +5855,7 @@ msgid "Folder Size…"
 msgstr "文件夹大小…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "文件夹名称"
@@ -8805,7 +8805,7 @@ msgid "MailCraft's search for your keys stopped without an answer. Try again."
 msgstr "MailCraft 搜索密钥时未得到结果便停止了。请重试。"
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Mailbox"
 msgstr "邮箱"
@@ -9876,7 +9876,7 @@ msgid "New Meeting"
 msgstr "新建会议"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "New Reference Folder"
 msgstr ""
 
@@ -11613,11 +11613,6 @@ msgid "Original message"
 msgstr "原始邮件"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Original messages will stay where they are."
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Other"
@@ -12987,10 +12982,15 @@ msgid "Rename Folder"
 msgstr "重命名文件夹"
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Rename Folder…"
 msgstr "重命名文件夹…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs
+msgid "Rename Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/signature.rs
@@ -18130,6 +18130,11 @@ msgstr "暂时无法读取此账户的日历：“发送/接收”会先登录�
 #, fuzzy
 msgid "This account's server keeps this contact. Changes made here aren't sent back yet, so it can't be edited or deleted here. Favorite and categories are kept on this computer."
 msgstr "此联系人由该账户的服务器保存。在此处所做的更改尚不能发送回服务器，因此不能在此编辑或删除。收藏状态和类别保存在此计算机上。"
+
+#. interface
+#: crates/ui-egui/src/lib.rs
+msgid "This action requires a mail folder."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs

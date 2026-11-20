@@ -2157,12 +2157,49 @@ impl MailApp {
         (v.overlay, v.overlay_front) = (saved.overlay.iter().copied().take(200).collect(), saved.overlay_front);
     }
 
+    fn virtual_folder_selected(&self) -> bool {
+        self.session.all_mail_accounts().is_some() || self.session.reference_folder().is_some()
+    }
+
+    /// What a folder action means when no physical target was named.
+    fn folder_view_command<'a>(&self, id: &'a str, params: Option<&Value>) -> Option<&'a str> {
+        if !self.virtual_folder_selected() {
+            return Some(id);
+        }
+        let named = |key| params.is_some_and(|p| p.get(key).is_some());
+        let reference = || self.session.reference_folder().is_some();
+        match id {
+            "folder.new" if !named("parent") && !named("account") => Some("folder.referenceNew"),
+            "folder.rename" if !named("id") => reference().then_some("folder.referenceRename"),
+            "folder.delete" if !named("id") => reference().then_some("folder.referenceDelete"),
+            "folder.move" | "folder.empty" | "folder.favorite" | "file.exportFolder" if !named("id") => None,
+            "folder.properties" if !named("id") && !named("account") => None,
+            "mail.markAllRead" | "mail.removeImportedDuplicates" | "rules.run" if !named("folder") => None,
+            _ => Some(id),
+        }
+    }
+
     /// Whether a command exists and is enabled.
     pub fn enabled(&self, id: &str) -> bool {
+        self.enabled_for(id, None)
+    }
+
+    fn enabled_for(&self, id: &str, params: Option<&Value>) -> bool {
         // Nothing runs while the mailbox the window starts with is read.
         if self.opening.is_some() {
             return false;
         }
+        let Some(id) = self.folder_view_command(id, params) else { return false };
+        if matches!(id, "folder.referenceRename" | "folder.referenceDelete")
+            && self.session.reference_folder().is_none()
+            && params.and_then(|p| p.get("folder")).is_none()
+        {
+            return false;
+        }
+        self.command_enabled(id)
+    }
+
+    fn command_enabled(&self, id: &str) -> bool {
         match self.session.registry.get(id) {
             // Cancel All, while the window has a Send/Receive under way.
             Some(_) if id == "sync.cancel" => self.syncing(),
@@ -2195,6 +2232,11 @@ impl MailApp {
         if self.opening.is_some() {
             return Err(opening::STILL_OPENING.into());
         }
+        let Some(id) = self.folder_view_command(id, Some(&params)) else {
+            let e = tl!("This action requires a mail folder.").to_string();
+            self.say_refused(id, &e);
+            return Err(e);
+        };
         // Another window's mailbox is refused before anything is asked or read (#517).
         if let Some(e) = opening::claim_refused(self, id, &params) {
             self.say_refused(id, &e);
@@ -2218,27 +2260,31 @@ impl MailApp {
             return Err(e);
         }
         if let Some(name) = dialogs::input_dialog(id, &params)
-            && self.enabled(id)
+            && self.command_enabled(id)
         {
             // An appointment or a meeting has a window of its own to be filled in.
             if let Some(opened) = windows::open_form(self, name, &params) {
                 return opened;
             }
-            // Rename Folder without a name (the ribbon's button, F2) asks for the new name of the folder
-            // in view: the folder dialog opens as New Folder unless it is told to rename (the folder
-            // pane's own Rename Folder… says so already).
-            let asked = match (id, params.clone()) {
-                ("folder.rename", Value::Object(mut map)) => {
-                    map.insert("mode".into(), json!("rename"));
-                    Value::Object(map)
-                }
-                ("folder.rename", Value::Null) => json!({"mode": "rename"}),
-                (_, asked) => asked,
+            let mode = match id {
+                "folder.new" => Some("new"),
+                "folder.rename" => Some("rename"),
+                "folder.referenceNew" => Some("referenceNew"),
+                "folder.referenceRename" => Some("referenceRename"),
+                _ => None,
             };
+            let mut asked = params.clone();
+            if let Some(mode) = mode {
+                if asked.is_null() {
+                    asked = json!({});
+                }
+                if let Some(map) = asked.as_object_mut() {
+                    map.insert("mode".into(), json!(mode));
+                }
+            }
             self.dialog = dialogs::open_dialog(self, name, &asked);
-            // Folder Properties asks the engine first: when the engine refuses, there is no
-            // dialog, and the command runs below so that the refusal is said as any command's is.
-            if self.dialog.is_some() || !matches!(name, "folderProperties" | "wordCount") {
+            // A folder dialog may refuse an invalid target. Let the command say why below.
+            if self.dialog.is_some() || !matches!(name, "folder" | "folderProperties" | "wordCount") {
                 return Ok(json!({"pending": name}));
             }
         }
@@ -3842,9 +3888,9 @@ impl MailApp {
         let opening = self.session.openings();
         if opening != self.secrets_opening {
             self.secrets_opening = opening;
-            // A question about the mailbox that was open goes with it: it names messages and
-            // accounts by ids, which the other mailbox may have too (#503).
-            if matches!(self.dialog, Some(dialogs::Dialog::Confirm { .. })) {
+            // A question or folder dialog belongs to the mailbox it was opened on. The replacement
+            // can have its own entries with the same ids (#503).
+            if matches!(self.dialog, Some(dialogs::Dialog::Confirm { .. } | dialogs::Dialog::Folder { .. })) {
                 self.dialog = None;
             }
             // An agent's too.

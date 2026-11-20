@@ -180,6 +180,9 @@ impl Menu {
 /// Whether a control can be used now: its command can run, or the command its menu stands for
 /// ([`Menu::command`]); a menu that stands for none always can. Every layout draws by it.
 pub(crate) fn usable(app: &MailApp, item: &Item) -> bool {
+    if item.key == "ui.import" && app.ui.tab == "Folder" && app.virtual_folder_selected() {
+        return false;
+    }
     match (&item.command, item.menu) {
         (Some((command, params)), _) => {
             let explicit_attachment =
@@ -197,7 +200,9 @@ pub(crate) fn usable(app: &MailApp, item: &Item) -> bool {
 
 /// Whether a menu can be opened now: the command it stands for can run, or it stands for none.
 fn menu_usable(app: &MailApp, menu: Menu) -> bool {
-    (menu != Menu::RecentAttachments || crate::recent_attachments::available(app)) && menu.command().is_none_or(|command| app.enabled(command))
+    (menu != Menu::RecentAttachments || crate::recent_attachments::available(app))
+        && (menu != Menu::MoveFolder || !app.virtual_folder_selected())
+        && menu.command().is_none_or(|command| app.enabled(command))
 }
 
 /// Whether a menu holds a text field the owner clicks in and types into: a colour typed by hand,
@@ -1056,7 +1061,7 @@ fn send_receive(app: &MailApp) -> Tab {
 
 fn folder(app: &MailApp) -> Tab {
     // (As the folder pane lists it: by Outlook's own list where an account has one.)
-    let favorite = mailcraft_engine::cmd::folder::favorites(&app.session).contains(&app.session.view.folder);
+    let favorite = !app.virtual_folder_selected() && mailcraft_engine::cmd::folder::favorites(&app.session).contains(&app.session.view.folder);
     Tab::of(vec![
         g("New", vec![Item::big("folderNew", "New\nFolder", "folder.new", no()).at(0, 1)]),
         g(

@@ -3839,11 +3839,6 @@ msgid "Courier New"
 msgstr "Courier New"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Create"
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 msgid "Create Message"
 msgstr "Nachricht erstellen"
@@ -4075,7 +4070,7 @@ msgid "Delete Conversation"
 msgstr "Unterhaltung löschen"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
 msgid "Delete Folder"
 msgstr "Ordner löschen"
 
@@ -4104,7 +4099,7 @@ msgid "Delete Recurring Item"
 msgstr "Serienelement löschen"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Reference Folder"
 msgstr ""
 
@@ -4155,6 +4150,11 @@ msgstr "Besprechungsanfragen nach dem Antworten aus dem Posteingang löschen"
 #, fuzzy
 msgid "Delete on a conversation's row that takes more than one message asks first."
 msgstr "Beim Löschen über eine Unterhaltungszeile wird zuerst nachgefragt, wenn mehr als eine Nachricht betroffen ist."
+
+#. interface
+#: crates/ui-egui/src/dialogs.rs
+msgid "Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -5514,7 +5514,7 @@ msgid "Folder Size…"
 msgstr "Ordnergröße…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Ordnername"
@@ -8249,7 +8249,7 @@ msgid "MailCraft's search for your keys stopped without an answer. Try again."
 msgstr "Die Suche von MailCraft nach Ihren Schlüsseln wurde ohne Ergebnis abgebrochen. Versuchen Sie es erneut."
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Mailbox"
 msgstr "Postfach"
@@ -9269,7 +9269,7 @@ msgid "New Meeting"
 msgstr "Neue Besprechung"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "New Reference Folder"
 msgstr ""
 
@@ -10879,11 +10879,6 @@ msgid "Original message"
 msgstr "Ursprüngliche Nachricht"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Original messages will stay where they are."
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
 msgid "Other"
 msgstr "Andere"
@@ -12160,10 +12155,15 @@ msgid "Rename Folder"
 msgstr "Ordner umbenennen"
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Rename Folder…"
 msgstr "Ordner umbenennen…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs
+msgid "Rename Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/signature.rs
@@ -16988,6 +16988,11 @@ msgstr "Der Kalender dieses Kontos kann noch nicht abgefragt werden: Senden/Empf
 #, fuzzy
 msgid "This account's server keeps this contact. Changes made here aren't sent back yet, so it can't be edited or deleted here. Favorite and categories are kept on this computer."
 msgstr "Der Server dieses Kontos verwaltet diesen Kontakt. Hier vorgenommene Änderungen werden noch nicht zurückgesendet, daher kann er hier weder bearbeitet noch gelöscht werden. Favorit und Kategorien werden auf diesem Computer gespeichert."
+
+#. interface
+#: crates/ui-egui/src/lib.rs
+msgid "This action requires a mail folder."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs

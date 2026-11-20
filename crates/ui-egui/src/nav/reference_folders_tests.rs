@@ -5,6 +5,7 @@ use egui_kittest::kittest::Queryable as _;
 use mailcraft_engine::{Session, sample};
 use serde_json::json;
 
+use crate::people_view::testing::click;
 use crate::{MailApp, Services, theme::Appearance};
 
 #[test]
@@ -16,6 +17,7 @@ fn the_desktop_pane_opens_all_mail_and_saved_reference_folders_in_both_themes() 
         app.ui.theme = theme;
         app.session.driver.set_auto_sync(false);
         let id = *app.session.mailbox.messages.keys().next().unwrap();
+        let inbox = app.session.mailbox.inbox().unwrap();
         let count = app.session.mailbox.messages.len();
         let target = app.execute("folder.referenceNew", json!({"name": "Reading later"})).unwrap()["folder"].as_u64().unwrap();
         app.execute("mail.referenceCopy", json!({"folder": target, "id": id})).unwrap();
@@ -33,6 +35,26 @@ fn the_desktop_pane_opens_all_mail_and_saved_reference_folders_in_both_themes() 
             );
         let _ = window.state_mut().execute("ui.dismissReminder", json!({"all": true}));
         window.run_steps(5);
+        let hits = &window.state().hit;
+        let physical = hits.rect("folder", inbox).unwrap();
+        let all = hits.rect("allMail", 0).unwrap();
+        let reference = hits.rect("referenceFolder", target).unwrap();
+        assert_eq!(all.x_range(), physical.x_range());
+        assert_eq!(reference.x_range(), physical.x_range());
+        assert_eq!(all.height(), physical.height());
+        assert_eq!(reference.height(), physical.height());
+        assert!(window.query_by_label("New Reference Folder").is_none());
+        assert!(window.query_by_label("Choose Accounts").is_none());
+        click(&mut window, all.center(), egui::PointerButton::Secondary, 1);
+        assert!(window.query_by_label("New Reference Folder").is_some());
+        assert!(window.query_by_label("Choose Accounts").is_some());
+        window.key_press(egui::Key::Escape);
+        window.run_steps(3);
+        click(&mut window, reference.center(), egui::PointerButton::Secondary, 1);
+        assert!(window.query_by_label("Rename Folder…").is_some());
+        assert!(window.query_by_label("Delete Reference Folder").is_some());
+        window.key_press(egui::Key::Escape);
+        window.run_steps(3);
         window.get_by_label("All Mail").click();
         window.run_steps(4);
         assert_eq!(window.state().title_stem(), "All Mail");

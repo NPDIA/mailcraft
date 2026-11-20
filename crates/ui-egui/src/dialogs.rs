@@ -19,8 +19,15 @@ use crate::{MailApp, UI_COMMANDS};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum FolderMode {
-    New { parent: Option<Id> },
+    New { parent: Option<Id>, account: Option<Id> },
     Rename { id: Id },
+    ReferenceNew,
+    ReferenceRename { folder: Id },
+}
+
+fn reference_target(app: &MailApp, params: &Value) -> Option<Id> {
+    let target = mailcraft_engine::p::id_strict(params, "folder").ok()?.unwrap_or(app.session.view.folder);
+    app.session.mailbox.reference_folders.contains_key(&target).then_some(target)
 }
 
 pub enum Dialog {
@@ -326,20 +333,36 @@ impl Dialog {
         let id = |k: &str| params.get(k).and_then(Value::as_u64).filter(|i| *i != 0);
         Some(match name {
             "commands" => Dialog::Commands { query: params.get("query").and_then(Value::as_str).unwrap_or("").to_string(), selected: 0 },
-            "folder" => {
-                let rename = params.get("mode").and_then(Value::as_str) == Some("rename");
-                if rename {
-                    let f = app.session.mailbox.folder(id("id").unwrap_or(app.session.view.folder))?;
+            "folder" if params.is_object() || params.is_null() => match params.get("mode").and_then(Value::as_str) {
+                Some("rename") => {
+                    let target = mailcraft_engine::p::id_strict(params, "id").ok()?.unwrap_or(app.session.view.folder);
+                    let f = app.session.mailbox.folder(target)?;
                     Dialog::Folder { mode: FolderMode::Rename { id: f.id }, name: f.name.clone(), error: String::new() }
-                } else {
-                    // Under the folder named, else the one in view; `"parent": null` asks for the top level.
+                }
+                Some("referenceNew") => Dialog::Folder { mode: FolderMode::ReferenceNew, name: String::new(), error: String::new() },
+                Some("referenceRename") => {
+                    let folder = reference_target(app, params)?;
+                    let name = app.session.mailbox.reference_folders.get(&folder)?.name.clone();
+                    Dialog::Folder { mode: FolderMode::ReferenceRename { folder }, name, error: String::new() }
+                }
+                _ => {
+                    let mailbox = &app.session.mailbox;
+                    let account = mailcraft_engine::p::id_strict(params, "account").ok()?;
+                    if account.is_some_and(|id| mailbox.account(id).is_none()) {
+                        return None;
+                    }
+                    let in_account = |folder: &mailcraft_model::Folder| account.is_none_or(|id| id == folder.account);
                     let parent = match params.get("parent") {
                         Some(Value::Null) => None,
-                        _ => id("parent").or(Some(app.session.view.folder)).filter(|p| app.session.mailbox.folder(*p).is_some()),
+                        Some(_) => {
+                            let id = mailcraft_engine::p::id_strict(params, "parent").ok().flatten()?;
+                            Some(mailbox.folder(id).filter(|folder| in_account(folder))?.id)
+                        }
+                        None => mailbox.folder(app.session.view.folder).filter(|folder| in_account(folder)).map(|folder| folder.id),
                     };
-                    Dialog::Folder { mode: FolderMode::New { parent }, name: String::new(), error: String::new() }
+                    Dialog::Folder { mode: FolderMode::New { parent, account }, name: String::new(), error: String::new() }
                 }
-            }
+            },
             "goToDate" => Dialog::GoToDate { text: app.session.view.date.iso(), error: String::new() },
             "addReminder" => Dialog::AddReminder(crate::reminder_dialog::AddReminder::open(app, crate::reminder_dialog::Target::Messages)?),
             "followUpDate" => Dialog::AddReminder(crate::reminder_dialog::AddReminder::open(app, crate::reminder_dialog::Target::Composing)?),
@@ -631,6 +654,14 @@ pub fn confirmation(app: &MailApp, id: &str, params: &Value) -> Option<Question>
             let text =
                 crate::i18n::fmt(tl!("The folder \"{folder}\" and everything in it will be deleted."), &[("folder", crate::nav::folder_name(f))]);
             question(tl!("Delete Folder"), text, tl!("Delete"))
+        }
+        "folder.referenceDelete" if params.get("confirm").and_then(Value::as_bool) != Some(true) => {
+            let folder = mb.reference_folders.get(&reference_target(app, params)?)?;
+            let text = crate::i18n::fmt(
+                tl!("Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."),
+                &[("folder", &folder.name)],
+            );
+            Some(Question::new(tl!("Delete Reference Folder"), text, tl!("Delete"), json!({"confirm": true})))
         }
         // (The placeholder of an empty mailbox isn't removed, and the command says so.)
         "account.remove" => {
@@ -953,6 +984,7 @@ pub(crate) fn pin_targets(app: &MailApp, id: &str, mut params: Value) -> Value {
     let pin = match id {
         "people.delete" if !named("id") => sel.contact.map(|c| ("id", json!(c))),
         "folder.empty" | "folder.delete" if !named("id") => Some(("id", json!(app.session.view.folder))),
+        "folder.referenceDelete" if !named("folder") => reference_target(app, &params).map(|folder| ("folder", json!(folder))),
         // The message the question was about, not whatever is selected when the owner says yes
         // (#1207); `null` reads as the selection there too.
         "ui.unsubscribe" if params.get("message").is_none_or(Value::is_null) => sel.focus().map(|m| ("message", json!(m))),
@@ -1342,7 +1374,7 @@ pub fn input_dialog(id: &str, params: &Value) -> Option<&'static str> {
     let empty = params.as_object().is_none_or(|m| m.is_empty());
     let names_messages = params.get("id").is_some() || params.get("ids").is_some();
     match id {
-        "folder.new" | "folder.rename" if !has("name") => Some("folder"),
+        "folder.new" | "folder.rename" | "folder.referenceNew" | "folder.referenceRename" if !has("name") => Some("folder"),
         "calendar.new" if !has("title") => Some("event"),
         "calendar.newMeeting" | "people.meeting" if !has("title") => Some("meeting"),
         // (Which of a series is meant says nothing of what to change: the form is still to come.)
@@ -1472,7 +1504,7 @@ pub(crate) fn all_commands(app: &MailApp) -> Vec<(String, String, String, String
                 tl!(c.label).to_string(),
                 crate::i18n::location(c.location),
                 crate::widgets::shortcut_text(app, c.id),
-                (c.enabled)(&app.session).is_none() && crate::windows::compose_window::acts_here(app, c.id),
+                app.enabled(c.id) && crate::windows::compose_window::acts_here(app, c.id),
             )
         })
         .collect();
@@ -1646,10 +1678,15 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
             close |= !open;
         }
         Dialog::Folder { mode, name, error } => {
-            let title = if matches!(mode, FolderMode::New { .. }) { tl!("New Folder") } else { tl!("Rename Folder") };
+            let title = match mode {
+                FolderMode::New { .. } => tl!("New Folder"),
+                FolderMode::Rename { .. } => tl!("Rename Folder"),
+                FolderMode::ReferenceNew => tl!("New Reference Folder"),
+                FolderMode::ReferenceRename { .. } => tl!("Rename Reference Folder"),
+            };
             let mut submit = false;
             let open = window(ctx, title, 380.0, |ui| {
-                if let FolderMode::New { parent } = mode {
+                if let FolderMode::New { parent, .. } = mode {
                     let place = parent.map(|p| crate::nav::folder_path(&app.session.mailbox, p)).unwrap_or_else(|| tl!("the top level").to_string());
                     ui.label(egui::RichText::new(crate::i18n::fmt(tl!("In {place}"), &[("place", &place)])).color(t.text_dim));
                 }
@@ -1668,8 +1705,18 @@ pub fn show(app: &mut MailApp, ctx: &egui::Context) {
             close |= !open;
             if submit {
                 let r = match mode {
-                    FolderMode::New { parent } => app.execute("folder.new", json!({"name": name, "parent": parent})),
+                    FolderMode::New { parent, account } => {
+                        let mut params = json!({"name": name, "parent": parent});
+                        if let Some(account) = account {
+                            params["account"] = json!(account);
+                        }
+                        app.execute("folder.new", params)
+                    }
                     FolderMode::Rename { id } => app.execute("folder.rename", json!({"id": id, "name": name})),
+                    FolderMode::ReferenceNew => app.execute("folder.referenceNew", json!({"name": name})).inspect(|created| {
+                        let _ = app.run("folder.referenceOpen", created.clone());
+                    }),
+                    FolderMode::ReferenceRename { folder } => app.execute("folder.referenceRename", json!({"folder": folder, "name": name})),
                 };
                 match r {
                     Ok(_) => close = true,

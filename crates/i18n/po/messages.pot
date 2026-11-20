@@ -3374,11 +3374,6 @@ msgid "Courier New"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Create"
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 msgid "Create Message"
 msgstr ""
@@ -3595,7 +3590,7 @@ msgid "Delete Conversation"
 msgstr ""
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
 msgid "Delete Folder"
 msgstr ""
 
@@ -3620,7 +3615,7 @@ msgid "Delete Recurring Item"
 msgstr ""
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Reference Folder"
 msgstr ""
 
@@ -3662,6 +3657,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/account_setup.rs
 msgid "Delete on a conversation's row that takes more than one message asks first."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/dialogs.rs
+msgid "Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."
 msgstr ""
 
 #. interface
@@ -4879,7 +4879,7 @@ msgid "Folder Size…"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/ui-egui/src/dialogs.rs
 msgid "Folder name"
 msgstr ""
 
@@ -7339,7 +7339,7 @@ msgid "MailCraft's search for your keys stopped without an answer. Try again."
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Mailbox"
 msgstr ""
 
@@ -8217,7 +8217,7 @@ msgid "New Meeting"
 msgstr ""
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "New Reference Folder"
 msgstr ""
 
@@ -9666,11 +9666,6 @@ msgid "Original message"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Original messages will stay where they are."
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
 msgid "Other"
 msgstr ""
@@ -10806,8 +10801,13 @@ msgid "Rename Folder"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Rename Folder…"
+msgstr ""
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs
+msgid "Rename Reference Folder"
 msgstr ""
 
 #. command label
@@ -15080,6 +15080,11 @@ msgstr ""
 #. interface
 #: crates/ui-egui/src/people_view.rs
 msgid "This account's server keeps this contact. Changes made here aren't sent back yet, so it can't be edited or deleted here. Favorite and categories are kept on this computer."
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/lib.rs
+msgid "This action requires a mail folder."
 msgstr ""
 
 #. interface

@@ -2,62 +2,65 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 //! Desktop navigation and filing for local reference folders.
 
-use egui::{Button, RichText, TextEdit, Ui};
+use egui::{Rect, Response, RichText, Stroke, StrokeKind, Ui, pos2, vec2};
 use mailcraft_model::{Id, Message};
 use serde_json::json;
 
-use crate::MailApp;
+use crate::mail_view::MessageDrag;
+use crate::theme::{Tokens, bold, paint_clipped, regular};
+use crate::{MailApp, icons};
+
+use super::{CHEVRON_X, COUNT_RIGHT, NAME_LEFT, NAME_SIZE, folder_menu_item, folder_row_frame};
+
+fn row(app: &mut MailApp, ui: &mut Ui, kind: &'static str, id: Id, name: &str, icon: &str, selected: bool) -> (Response, Rect) {
+    let t = Tokens::get(ui.ctx());
+    let row_id = ui.scope_id().with((kind, id));
+    let (response, highlight) = folder_row_frame(ui, row_id, selected, &t);
+    let r = response.rect;
+    app.hit.add(kind, id, r);
+    response.widget_info(|| egui::WidgetInfo::selected(egui::Role::TreeItem, true, selected, name));
+    let ink = if selected { t.accent_soft_text } else { t.text };
+    let icon_ink = if selected { ink } else { t.icon };
+    let y = r.center().y;
+    icons::paint(ui.painter(), Rect::from_center_size(pos2(r.min.x + CHEVRON_X, y), vec2(14.0, 14.0)), icon, icon_ink, icon_ink);
+    let font = if selected { bold(NAME_SIZE) } else { regular(NAME_SIZE) };
+    paint_clipped(ui.painter(), pos2(r.min.x + NAME_LEFT, y), (r.width() - NAME_LEFT - COUNT_RIGHT).max(0.0), name, font, ink);
+    (response, highlight)
+}
 
 pub(crate) fn pane(app: &mut MailApp, ui: &mut Ui) {
     let active = app.session.all_mail_accounts().map(<[Id]>::to_vec);
-    let all = ui.selectable_label(active.is_some(), tl!("All Mail"));
-    if all.clicked() {
+    let (all, _) = row(app, ui, "allMail", 0, tl!("All Mail"), "mail", active.is_some());
+    if all.clicked() && active.is_none() {
         let _ = app.run("folder.allMail", json!({}));
     }
-    all.context_menu(|ui| accounts(app, ui, active.as_deref()));
-    if active.is_some() && app.session.mailbox.accounts.len() > 1 {
+    all.context_menu(|ui| {
+        ui.set_min_width(190.0);
+        folder_menu_item(ui, app, tl_later!("New Reference Folder"), "folder.referenceNew", json!({}), true);
         ui.menu_button(tl!("Choose Accounts"), |ui| accounts(app, ui, active.as_deref()));
-    }
-    ui.menu_button(tl!("New Reference Folder"), |ui| {
-        let key = ui.scope_id().with("new_reference_folder_name");
-        let mut name = ui.data_mut(|data| data.get_temp::<String>(key).unwrap_or_default());
-        ui.add(TextEdit::singleline(&mut name).hint_text(tl!("Folder name")).char_limit(mailcraft_model::MAX_NAME));
-        if ui.add_enabled(!name.trim().is_empty(), Button::new(tl!("Create"))).clicked()
-            && let Ok(result) = app.run("folder.referenceNew", json!({"name": name}))
-        {
-            if let Some(id) = result.get("folder").and_then(serde_json::Value::as_u64) {
-                let _ = app.run("folder.referenceOpen", json!({"folder": id}));
-            }
-            name.clear();
-            ui.close();
-        }
-        ui.data_mut(|data| data.insert_temp(key, name));
     });
 
     let folders: Vec<(Id, String)> = app.session.mailbox.reference_folders.iter().map(|(&id, folder)| (id, folder.name.clone())).collect();
     for (id, name) in folders {
-        ui.push_id(id, |ui| {
-            let row = ui.selectable_label(app.session.view.folder == id, &name);
-            app.hit.add("referenceFolder", id, row.rect);
-            if row.clicked() {
-                let _ = app.run("folder.referenceOpen", json!({"folder": id}));
-            }
-            if let Some(messages) = row.dnd_release_payload::<crate::mail_view::MessageDrag>() {
-                let _ = app.run("mail.referenceCopy", json!({"folder": id, "ids": messages.0}));
-            }
-            row.context_menu(|ui| {
-                if ui.button(tl!("Remove Unavailable References")).clicked() {
-                    let _ = app.run("folder.referencePrune", json!({"folder": id}));
-                    ui.close();
-                }
-                ui.menu_button(tl!("Delete Reference Folder"), |ui| {
-                    ui.label(tl!("Original messages will stay where they are."));
-                    if ui.button(tl!("Delete Folder")).clicked() {
-                        let _ = app.run("folder.referenceDelete", json!({"folder": id, "confirm": true}));
-                        ui.close();
-                    }
-                });
-            });
+        let selected = app.session.view.folder == id;
+        let (response, highlight) = row(app, ui, "referenceFolder", id, &name, "folder", selected);
+        if response.clicked() {
+            let _ = app.run("folder.referenceOpen", json!({"folder": id}));
+        }
+        if response.dnd_hover_payload::<MessageDrag>().is_some() {
+            crate::drag_pointer::note_folder(ui.ctx(), true);
+            ui.painter().rect_stroke(highlight, 0.0, Stroke::new(1.5, Tokens::get(ui.ctx()).accent), StrokeKind::Inside);
+        }
+        if let Some(messages) = response.dnd_release_payload::<MessageDrag>() {
+            let _ = app.run("mail.referenceCopy", json!({"folder": id, "ids": messages.0}));
+        }
+        response.context_menu(|ui| {
+            ui.set_min_width(190.0);
+            folder_menu_item(ui, app, tl_later!("New Reference Folder"), "folder.referenceNew", json!({}), true);
+            folder_menu_item(ui, app, tl_later!("Rename Folder…"), "folder.referenceRename", json!({"folder": id}), true);
+            folder_menu_item(ui, app, tl_later!("Delete Reference Folder"), "folder.referenceDelete", json!({"folder": id}), true);
+            ui.separator();
+            folder_menu_item(ui, app, tl_later!("Remove Unavailable References"), "folder.referencePrune", json!({"folder": id}), true);
         });
     }
     ui.separator();
@@ -69,7 +72,10 @@ fn accounts(app: &mut MailApp, ui: &mut Ui, active: Option<&[Id]>) {
         .mailbox
         .accounts_in_order()
         .into_iter()
-        .map(|a| (a.id, if a.name.is_empty() { a.email.clone() } else { a.name.clone() }))
+        .map(|a| {
+            let name = super::account_name(a);
+            (a.id, if name.is_empty() { tl!("Mailbox").to_string() } else { name })
+        })
         .collect();
     let mut shown = match active {
         Some(selected) if !selected.is_empty() => selected.iter().copied().filter(|id| accounts.iter().any(|a| a.0 == *id)).collect(),

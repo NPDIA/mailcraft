@@ -602,6 +602,7 @@ const NEVER: &[&str] = &[
     "folder.allMail",
     "folder.referenceNew",
     "folder.referenceOpen",
+    "folder.referenceRename",
     "folder.referenceDelete",
     "folder.referencePrune",
     "mail.referenceCopy",

@@ -4054,11 +4054,6 @@ msgid "Courier New"
 msgstr "Courier New"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Create"
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Create Message"
@@ -4322,7 +4317,7 @@ msgid "Delete Conversation"
 msgstr "Ștergere conversație"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "Ștergere dosar"
@@ -4352,7 +4347,7 @@ msgid "Delete Recurring Item"
 msgstr "Ștergere element recurent"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Reference Folder"
 msgstr ""
 
@@ -4403,6 +4398,11 @@ msgstr "Ștergeți invitațiile la întâlnire din Mesaje primite după ce răsp
 #, fuzzy
 msgid "Delete on a conversation's row that takes more than one message asks first."
 msgstr "Ștergerea pe rândul unei conversații cu mai multe mesaje cere confirmare."
+
+#. interface
+#: crates/ui-egui/src/dialogs.rs
+msgid "Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -5878,7 +5878,7 @@ msgid "Folder Size…"
 msgstr "Dimensiune dosar…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Nume dosar"
@@ -8842,7 +8842,7 @@ msgid "MailCraft's search for your keys stopped without an answer. Try again."
 msgstr "Căutarea cheilor dvs. de către MailCraft s-a oprit fără răspuns. Încercați din nou."
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Mailbox"
 msgstr "Cutie poștală"
@@ -9915,7 +9915,7 @@ msgid "New Meeting"
 msgstr "Întâlnire nouă"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "New Reference Folder"
 msgstr ""
 
@@ -11654,11 +11654,6 @@ msgid "Original message"
 msgstr "Mesaj original"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Original messages will stay where they are."
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Other"
@@ -13030,10 +13025,15 @@ msgid "Rename Folder"
 msgstr "Redenumire dosar"
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Rename Folder…"
 msgstr "Redenumește folderul…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs
+msgid "Rename Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/signature.rs
@@ -18187,6 +18187,11 @@ msgstr "Calendarul acestui cont nu poate fi interogat încă: Trimitere/primire 
 #, fuzzy
 msgid "This account's server keeps this contact. Changes made here aren't sent back yet, so it can't be edited or deleted here. Favorite and categories are kept on this computer."
 msgstr "Serverul acestui cont păstrează acest contact. Modificările făcute aici nu sunt încă trimise înapoi, deci nu poate fi editat sau șters aici. Favoritele și categoriile se păstrează pe acest computer."
+
+#. interface
+#: crates/ui-egui/src/lib.rs
+msgid "This action requires a mail folder."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs

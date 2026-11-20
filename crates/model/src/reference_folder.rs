@@ -74,12 +74,33 @@ impl Mailbox {
         if self.reference_folders.len() >= MAX_REFERENCE_FOLDERS {
             return Err(ModelError::Invalid("there are too many reference folders".into()));
         }
-        if self.reference_folders.values().any(|folder| folder.name.to_lowercase() == name.to_lowercase()) {
+        if self.reference_folder_name_taken(&name, None) {
             return Err(ModelError::Invalid("a reference folder already has that name".into()));
         }
         let id = self.alloc_id();
         self.reference_folders.insert(id, Arc::new(ReferenceFolder { name, links: BTreeMap::new() }));
         Ok(id)
+    }
+
+    /// Rename a reference folder in place, keeping its id and every link to original mail.
+    pub fn rename_reference_folder(&mut self, folder: Id, name: &str) -> Result<(), ModelError> {
+        let name = clean_name(name).ok_or_else(|| ModelError::Invalid("a reference folder needs a name".into()))?;
+        let missing = || ModelError::NotFound("reference folder", folder);
+        let target = self.reference_folders.get(&folder).ok_or_else(missing)?;
+        if target.name == name {
+            return Ok(());
+        }
+        if self.reference_folder_name_taken(&name, Some(folder)) {
+            return Err(ModelError::Invalid("a reference folder already has that name".into()));
+        }
+        let target = self.reference_folders.get_mut(&folder).ok_or_else(missing)?;
+        Arc::make_mut(target).name = name;
+        Ok(())
+    }
+
+    fn reference_folder_name_taken(&self, name: &str, except: Option<Id>) -> bool {
+        let name = name.to_lowercase();
+        self.reference_folders.iter().any(|(&id, folder)| Some(id) != except && folder.name.to_lowercase() == name)
     }
 
     pub fn reference_message(&self, folder: Id, id: Id) -> Option<&Message> {
@@ -181,3 +202,7 @@ impl Mailbox {
         changed
     }
 }
+
+#[cfg(test)]
+#[path = "reference_folder_tests.rs"]
+mod tests;

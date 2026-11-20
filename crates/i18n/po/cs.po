@@ -4046,11 +4046,6 @@ msgid "Courier New"
 msgstr "Courier New"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Create"
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/meeting_dialogs/share.rs
 #, fuzzy
 msgid "Create Message"
@@ -4314,7 +4309,7 @@ msgid "Delete Conversation"
 msgstr "Odstranit konverzaci"
 
 #. command label, interface
-#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav.rs
 #, fuzzy
 msgid "Delete Folder"
 msgstr "Odstranit složku"
@@ -4344,7 +4339,7 @@ msgid "Delete Recurring Item"
 msgstr "Odstranit opakovanou položku"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "Delete Reference Folder"
 msgstr ""
 
@@ -4395,6 +4390,11 @@ msgstr "Po odpovědi odstranit žádosti o schůzku z Doručené pošty"
 #, fuzzy
 msgid "Delete on a conversation's row that takes more than one message asks first."
 msgstr "Odstranění na řádku konverzace, které zasáhne víc než jednu zprávu, se nejprve zeptá."
+
+#. interface
+#: crates/ui-egui/src/dialogs.rs
+msgid "Delete the reference folder \"{folder}\"? Its original messages will stay in their folders."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/forms.rs
@@ -5869,7 +5869,7 @@ msgid "Folder Size…"
 msgstr "Velikost složky…"
 
 #. interface
-#: crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/ui-egui/src/dialogs.rs
 #, fuzzy
 msgid "Folder name"
 msgstr "Název složky"
@@ -8831,7 +8831,7 @@ msgid "MailCraft's search for your keys stopped without an answer. Try again."
 msgstr "Hledání vašich klíčů v MailCraftu skončilo bez odpovědi. Zkuste to znovu."
 
 #. interface
-#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/backstage.rs crates/ui-egui/src/folder_properties.rs crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Mailbox"
 msgstr "Poštovní schránka"
@@ -9903,7 +9903,7 @@ msgid "New Meeting"
 msgstr "Nová schůzka"
 
 #. command label, interface
-#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/nav/reference_folders.rs
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs crates/ui-egui/src/nav/reference_folders.rs
 msgid "New Reference Folder"
 msgstr ""
 
@@ -11638,11 +11638,6 @@ msgid "Original message"
 msgstr "Původní zpráva"
 
 #. interface
-#: crates/ui-egui/src/nav/reference_folders.rs
-msgid "Original messages will stay where they are."
-msgstr ""
-
-#. interface
 #: crates/ui-egui/src/forms.rs crates/ui-egui/src/security.rs
 #, fuzzy
 msgid "Other"
@@ -13012,10 +13007,15 @@ msgid "Rename Folder"
 msgstr "Přejmenovat složku"
 
 #. interface
-#: crates/ui-egui/src/nav.rs
+#: crates/ui-egui/src/nav.rs crates/ui-egui/src/nav/reference_folders.rs
 #, fuzzy
 msgid "Rename Folder…"
 msgstr "Přejmenovat složku…"
+
+#. command label, interface
+#: crates/engine/src/cmd/reference_folder.rs crates/ui-egui/src/dialogs.rs
+msgid "Rename Reference Folder"
+msgstr ""
 
 #. command label
 #: crates/engine/src/cmd/signature.rs
@@ -18163,6 +18163,11 @@ msgstr "Kalendáře tohoto účtu se zatím nelze ptát: Odeslat/přijmout ho ne
 #, fuzzy
 msgid "This account's server keeps this contact. Changes made here aren't sent back yet, so it can't be edited or deleted here. Favorite and categories are kept on this computer."
 msgstr "Tento kontakt uchovává server tohoto účtu. Změny provedené zde se zatím neodesílají zpět, takže ho zde nelze upravit ani odstranit. Oblíbené a kategorie se uchovávají v tomto počítači."
+
+#. interface
+#: crates/ui-egui/src/lib.rs
+msgid "This action requires a mail folder."
+msgstr ""
 
 #. interface
 #: crates/ui-egui/src/attachment_preview.rs

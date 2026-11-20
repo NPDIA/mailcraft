@@ -426,8 +426,9 @@ fn delete(s: &mut Session, v: &Value) -> CmdResult {
     let parent = s.mailbox.folder(id).and_then(|f| f.parent);
     let account = s.mailbox.folder(id).map(|f| f.account);
     let permanently = s.mailbox.delete_folder(id)?;
-    // The view goes to where the folder was.
-    if s.view.folder == id || s.mailbox.folder(s.view.folder).is_none() {
+    // If the folder in view was deleted, go to where the deleted folder was.
+    let view_missing = s.all_mail_accounts().is_none() && s.reference_folder().is_none() && s.mailbox.folder(s.view.folder).is_none();
+    if s.view.folder == id || view_missing {
         s.view.folder = parent
             .filter(|p| s.mailbox.folder(*p).is_some())
             .or_else(|| account.and_then(|a| s.mailbox.folder_of_kind(a, FolderKind::Inbox)))

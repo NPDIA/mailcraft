@@ -90,7 +90,108 @@ fn rename_folder_without_a_name_asks_for_the_folder_s_new_name() {
     // New Folder still asks for a folder in the one in view.
     a.dialog = None;
     assert_eq!(a.run("folder.new", json!({})).unwrap()["pending"], "folder");
-    assert!(matches!(a.dialog, Some(Dialog::Folder { mode: FolderMode::New { parent: Some(p) }, .. }) if p == reports));
+    assert!(matches!(a.dialog, Some(Dialog::Folder { mode: FolderMode::New { parent: Some(p), account: None }, .. }) if p == reports));
+}
+
+#[test]
+fn reference_folder_ribbon_uses_native_dialogs_and_leaves_original_mail() {
+    use crate::dialogs::{Dialog, FolderMode};
+    use crate::people_view::testing::{Window, click, window};
+    use egui::accesskit::Role;
+    use egui_kittest::kittest::Queryable as _;
+
+    let mut h = window("view.mail");
+    let a = h.state_mut();
+    let _ = a.execute("ui.dismissReminder", json!({"all": true}));
+    let original = first_message(a);
+    let source = a.session.mailbox.message(original).unwrap().folder;
+    let physical = a.execute("folder.new", json!({"parent": source, "name": "Physical folder"})).unwrap()["id"].as_u64().unwrap();
+    let account = a.execute("account.add", json!({"email": "second@example.org"})).unwrap()["id"].as_u64().unwrap();
+    a.execute("folder.allMail", json!({})).unwrap();
+    a.execute("ui.tab", json!({"tab": "Folder"})).unwrap();
+    h.run_steps(4);
+
+    let usable = |h: &Window, key: &str| {
+        let app = h.state();
+        let ribbon = crate::ribbon::describe(app);
+        crate::ribbon::usable(app, ribbon.items().find(|item| item.key == key).unwrap())
+    };
+    let press = |h: &mut Window, key: &str| {
+        let pos = h.state().hit.rect("ribbon", crate::ribbon::hit_id(key)).unwrap().center();
+        click(h, pos, egui::PointerButton::Primary, 1);
+    };
+    let submit_name = |h: &mut Window, expected: FolderMode, old: &str, new: &str| {
+        let Some(Dialog::Folder { mode, name, .. }) = h.state_mut().dialog.as_mut() else { panic!("expected the shared folder dialog") };
+        assert_eq!(&*mode, &expected);
+        assert_eq!(name.as_str(), old);
+        *name = new.into();
+        h.run_steps(3);
+        h.get_by_role_and_label(Role::Button, "OK").click_accesskit();
+        h.run_steps(3);
+        assert!(h.state().dialog.is_none());
+    };
+    let physical_only =
+        ["moveFolder", "folder.empty", "folder.favorite", "folder.properties", "rules.run", "mail.markAllRead", "file.exportFolder", "ui.import"];
+    assert!(usable(&h, "folder.new"));
+    for key in physical_only.into_iter().chain(["folder.rename", "folder.delete"]) {
+        assert!(!usable(&h, key), "{key} in All Mail");
+    }
+    assert!(h.state_mut().run("folder.delete", json!({})).is_err());
+    assert!(h.state().dialog.is_none());
+
+    press(&mut h, "folder.new");
+    submit_name(&mut h, FolderMode::ReferenceNew, "", "Reading later");
+    let target = h.state().session.view.folder;
+    assert_eq!(h.state().session.reference_folder().unwrap().name, "Reading later");
+    for key in physical_only {
+        assert!(!usable(&h, key), "{key} in a reference folder");
+    }
+    let a = h.state_mut();
+    a.execute("mail.referenceCopy", json!({"folder": target, "id": original})).unwrap();
+    let other = a.execute("folder.referenceNew", json!({"name": "Another reference folder"})).unwrap()["folder"].as_u64().unwrap();
+    assert!(usable(&h, "folder.rename"));
+    press(&mut h, "folder.rename");
+    submit_name(&mut h, FolderMode::ReferenceRename { folder: target }, "Reading later", "Read this week");
+    assert_eq!(h.state().session.reference_folder().unwrap().name, "Read this week");
+
+    // The context menu can still name a real folder while a reference folder is selected.
+    h.state_mut().run("folder.rename", json!({"id": physical})).unwrap();
+    submit_name(&mut h, FolderMode::Rename { id: physical }, "Physical folder", "Physical renamed");
+    assert_eq!(h.state().session.mailbox.folder(physical).unwrap().name, "Physical renamed");
+
+    let a = h.state_mut();
+    for params in
+        [json!({"account": null}), json!({"account": u64::MAX}), json!({"parent": "invalid"}), json!({"account": account, "parent": source})]
+    {
+        assert!(a.run("folder.new", params).is_err());
+        assert!(a.dialog.is_none());
+    }
+    a.run("folder.new", json!({"account": account})).unwrap();
+    submit_name(&mut h, FolderMode::New { parent: None, account: Some(account) }, "", "Second account folder");
+    let created = h.state().session.mailbox.folders.iter().find(|f| f.name == "Second account folder").unwrap();
+    assert_eq!((created.account, created.parent), (account, None));
+
+    press(&mut h, "folder.delete");
+    let Some(Dialog::Confirm { command, params, ask }) = h.state().dialog.as_ref() else { panic!("expected a delete confirmation") };
+    assert_eq!(command, "folder.referenceDelete");
+    assert_eq!(params["folder"], target);
+    assert!(ask.text.contains("Read this week") && ask.text.contains("original messages will stay"));
+    h.state_mut().execute("folder.referenceOpen", json!({"folder": other})).unwrap();
+    h.run_steps(3);
+    let action = h.state().hit.rect("questionAction", 0).unwrap().center();
+    click(&mut h, action, egui::PointerButton::Primary, 1);
+    let s = &h.state().session;
+    assert!(!s.mailbox.reference_folders.contains_key(&target));
+    assert_eq!(s.reference_folder().unwrap().name, "Another reference folder");
+    assert_eq!(s.mailbox.message(original).unwrap().folder, source);
+
+    let a = h.state_mut();
+    a.run("folder.referenceRename", json!({"folder": other})).unwrap();
+    assert!(a.dialog.is_some());
+    a.session.replace_mailbox(a.session.mailbox.clone());
+    h.run_steps(3);
+    assert!(h.state().dialog.is_none());
+    assert_eq!(h.state().session.mailbox.reference_folders.get(&other).unwrap().name, "Another reference folder");
 }
 
 #[test]

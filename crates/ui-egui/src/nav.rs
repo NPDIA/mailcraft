@@ -495,6 +495,25 @@ fn picked_in_list(ui: &Ui) -> bool {
     ui.data(|d| d.get_temp::<bool>(egui::Id::unique("folder_picked_in_list"))).unwrap_or(false)
 }
 
+/// The hit area and highlight shared by rows in the folder tree.
+fn folder_row_frame(ui: &mut Ui, id: egui::Id, selected: bool, t: &Tokens) -> (egui::Response, Rect) {
+    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
+    let response = ui.interact(r, id, Sense::click());
+    let row = highlight(r).shrink2(vec2(0.0, ROW_HIGHLIGHT_INSET));
+    if selected {
+        ui.painter().rect_filled(row, 6.0, t.accent_soft);
+        ui.painter().rect_filled(Rect::from_center_size(pos2(row.min.x + 1.5, row.center().y), vec2(3.0, 14.0)), 1.5, t.selection_edge);
+    } else if response.hovered() {
+        // Quieter than on the ribbon: the pane is darker, and the selected row must stay the one that stands out.
+        ui.painter().rect_filled(row, 6.0, t.hover_nav);
+    }
+    // Reached with Tab or the arrow keys (Enter or Space shows it): where the keyboard is.
+    if response.has_focus() {
+        ui.painter().rect_stroke(row, 6.0, Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
+    }
+    (response, row)
+}
+
 /// A folder's row, `selected` when it is the one the folder in view is highlighted in. `key` tells
 /// the Favorites' rows (`fav`) from the accounts' (`tree`).
 fn folder_row(app: &mut MailApp, ui: &mut Ui, f: &Folder, depth: usize, has_children: bool, key: &str, count: Count, selected: bool) {
@@ -502,17 +521,10 @@ fn folder_row(app: &mut MailApp, ui: &mut Ui, f: &Folder, depth: usize, has_chil
     // another account's folder has too (two Inboxes); in its tree, its name.
     let name = if key == "fav" { result_folder_label(&app.session.mailbox, f) } else { folder_name(f).to_string() };
     let t = Tokens::get(ui.ctx());
-    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
-    let resp = ui.interact(r, ui.scope_id().with((key, f.id)), Sense::click());
+    let row_id = ui.scope_id().with((key, f.id));
+    let (resp, row) = folder_row_frame(ui, row_id, selected, &t);
+    let r = resp.rect;
     app.hit.add("folder", f.id, r);
-    let row = highlight(r).shrink2(vec2(0.0, ROW_HIGHLIGHT_INSET));
-    if selected {
-        ui.painter().rect_filled(row, 6.0, t.accent_soft);
-        ui.painter().rect_filled(Rect::from_center_size(pos2(row.min.x + 1.5, row.center().y), vec2(3.0, 14.0)), 1.5, t.selection_edge);
-    } else if resp.hovered() {
-        // Quieter than on the ribbon: the pane is darker, and the selected row must stay the one that stands out.
-        ui.painter().rect_filled(row, 6.0, t.hover_nav);
-    }
     let x = r.min.x + depth.min(MAX_INDENT_DEPTH) as f32 * INDENT;
     // The chevron has its own click target, only on a folder with something under it.
     if has_children {
@@ -574,12 +586,7 @@ fn folder_row(app: &mut MailApp, ui: &mut Ui, f: &Folder, depth: usize, has_chil
     let from_outlook = mailcraft_engine::cmd::folder::favorites_from_server(&app.session, f.account);
     resp.context_menu(|ui| {
         ui.set_min_width(190.0);
-        let item = |ui: &mut Ui, app: &mut MailApp, label: &str, cmd: &str, params: serde_json::Value, enabled: bool| {
-            if ui.add_enabled(enabled, egui::Button::new(tl!(label)).min_size(vec2(180.0, 0.0))).clicked() {
-                let _ = app.run(cmd, params);
-                ui.close();
-            }
-        };
+        let item = folder_menu_item;
         item(ui, app, tl_later!("New Folder…"), "ui.dialog", json!({"name": "folder", "mode": "new", "parent": id}), takes_folders);
         // (Not one that is or holds what a JMAP account's server has, which stays for now.)
         let renamable = custom && !app.session.mailbox.renaming_stays_on_server(id);
@@ -611,6 +618,13 @@ fn folder_row(app: &mut MailApp, ui: &mut Ui, f: &Folder, depth: usize, has_chil
     });
 }
 
+fn folder_menu_item(ui: &mut Ui, app: &mut MailApp, label: &str, command: &str, params: serde_json::Value, enabled: bool) {
+    if ui.add_enabled(enabled, egui::Button::new(tl!(label)).min_size(vec2(180.0, 0.0))).clicked() {
+        let _ = app.run(command, params);
+        ui.close();
+    }
+}
+
 /// What the window calls one of Gmail's categories (#911).
 pub(crate) fn gmail_name(category: GmailCategory) -> &'static str {
     match category {
@@ -640,20 +654,10 @@ fn gmail_hit(category: GmailCategory) -> &'static str {
 /// categories are on ([`crate::gmail_move`]), and stays where it was otherwise.
 fn gmail_row(app: &mut MailApp, ui: &mut Ui, inbox: Id, depth: usize, category: GmailCategory, unread: usize, selected: bool) {
     let t = Tokens::get(ui.ctx());
-    let (r, _) = ui.allocate_exact_size(vec2(ui.available_width(), ROW_H), Sense::hover());
-    let resp = ui.interact(r, ui.scope_id().with(("gmail", inbox, category.code())), Sense::click());
+    let row_id = ui.scope_id().with(("gmail", inbox, category.code()));
+    let (resp, row) = folder_row_frame(ui, row_id, selected, &t);
+    let r = resp.rect;
     app.hit.add(gmail_hit(category), inbox, r);
-    let row = highlight(r).shrink2(vec2(0.0, ROW_HIGHLIGHT_INSET));
-    if selected {
-        ui.painter().rect_filled(row, 6.0, t.accent_soft);
-        ui.painter().rect_filled(Rect::from_center_size(pos2(row.min.x + 1.5, row.center().y), vec2(3.0, 14.0)), 1.5, t.selection_edge);
-    } else if resp.hovered() {
-        ui.painter().rect_filled(row, 6.0, t.hover_nav);
-    }
-    // Reached with Tab or the arrow keys (Enter or Space shows it): where the keyboard is.
-    if resp.has_focus() {
-        ui.painter().rect_stroke(row, 6.0, Stroke::new(1.5, t.accent), egui::StrokeKind::Inside);
-    }
     let x = r.min.x + depth.min(MAX_INDENT_DEPTH) as f32 * INDENT;
     let y = r.center().y;
     let mut name_end = r.max.x - COUNT_RIGHT;

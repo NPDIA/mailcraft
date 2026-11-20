@@ -48,6 +48,28 @@ fn save_message_as_suggests_the_name_of_the_message_it_saves() {
     }
 }
 
+#[test]
+fn named_mail_folder_opens_the_export_picker_in_virtual_views() {
+    let mut app = MailApp::new(Session::at(mailcraft_engine::sample::mailbox(NOW, 0), NOW, 0), Services::default());
+    let (tx, asked) = mpsc::channel();
+    app.services.file_dialog = Some(Box::new(move |request| {
+        let _ = tx.send(request);
+        mpsc::channel::<Option<Vec<String>>>().1
+    }));
+    let folder = app.execute("folder.new", json!({"name": "Named mail folder"})).unwrap()["id"].as_u64().unwrap();
+    let reference = app.execute("folder.referenceNew", json!({"name": "Reference folder"})).unwrap()["folder"].as_u64().unwrap();
+
+    for (command, params) in [("folder.allMail", json!({})), ("folder.referenceOpen", json!({"folder": reference}))] {
+        app.execute(command, params).unwrap();
+        for wrong in [json!({}), json!({"id": null}), json!({"id": reference})] {
+            assert!(app.run("file.exportFolder", wrong).is_err());
+            assert!(asked.try_recv().is_err());
+        }
+        assert_eq!(app.run("file.exportFolder", json!({"id": folder})).unwrap()["cancelled"], true);
+        assert_eq!(asked.try_recv().unwrap(), FileDialogRequest::Save { name: "Named mail folder.mbox".into() });
+    }
+}
+
 /// A name typed over the suggestion without an extension gets the suggestion's (a Linux save
 /// dialog keeps it as typed), but never over a file the dialog didn't ask about.
 #[test]

@@ -16,6 +16,8 @@ pub fn specs() -> Vec<CommandSpec> {
         CommandSpec::new("folder.referenceNew", "New Reference Folder", "Folder", new)
             .params(r#"{"name": string} — creates a local reference folder without an account"#),
         CommandSpec::new("folder.referenceOpen", "Open Reference Folder", "Folder", open).reads().params(r#"{"folder": number}"#),
+        CommandSpec::new("folder.referenceRename", "Rename Reference Folder", "Folder", rename)
+            .params(r#"{"folder"?: number, "name": string} — defaults to the reference folder in view"#),
         CommandSpec::new("folder.referenceDelete", "Delete Reference Folder", "Folder", delete)
             .params(r#"{"folder": number, "confirm": true} — leaves every original message untouched"#),
         CommandSpec::new("folder.referencePrune", "Remove Unavailable References", "Folder", prune)
@@ -68,6 +70,12 @@ fn folder(s: &Session, v: &Value) -> Result<Id, CmdError> {
 fn open(s: &mut Session, v: &Value) -> CmdResult {
     let id = folder(s, v)?;
     show(s, id, None);
+    Ok(json!({"folder": id}))
+}
+
+fn rename(s: &mut Session, v: &Value) -> CmdResult {
+    let id = p::id_strict(v, "folder")?.unwrap_or(s.view.folder);
+    s.mailbox.rename_reference_folder(id, p::req_str(v, "name")?)?;
     Ok(json!({"folder": id}))
 }
 

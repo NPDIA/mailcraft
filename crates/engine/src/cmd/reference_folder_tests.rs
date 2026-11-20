@@ -119,6 +119,73 @@ fn reference_folders_keep_links_without_a_local_account_or_message_copy() {
 }
 
 #[test]
+fn renaming_a_reference_folder_uses_its_id_and_can_be_undone() {
+    let TestMailbox { mut session, first, second, .. } = setup();
+    let folder = run(&mut session, "folder.referenceNew", json!({"name": "Links"}))["folder"].as_u64().unwrap();
+    run(&mut session, "mail.referenceCopy", json!({"folder": folder, "id": first}));
+    run(&mut session, "folder.referenceOpen", json!({"folder": folder}));
+
+    assert_eq!(run(&mut session, "folder.referenceRename", json!({"name": "Renamed"})), json!({"folder": folder}));
+    assert_eq!(session.mailbox.reference_folders[&folder].name, "Renamed");
+    assert_eq!(session.view.folder, folder);
+    assert_eq!(ids(&mut session), [first]);
+
+    session.mailbox.copy_references(folder, &[second]).unwrap();
+    session.mailbox_changed();
+    run(&mut session, "edit.undo", json!({}));
+    assert_eq!(session.mailbox.reference_folders[&folder].name, "Links");
+    assert_eq!(ids(&mut session), [first, second]);
+    run(&mut session, "edit.redo", json!({}));
+    assert_eq!(session.mailbox.reference_folders[&folder].name, "Renamed");
+    assert_eq!(ids(&mut session), [first, second]);
+}
+
+#[test]
+fn reference_rename_refuses_physical_folders_and_invalid_explicit_ids() {
+    let TestMailbox { mut session, inbox, .. } = setup();
+    let folder = run(&mut session, "folder.referenceNew", json!({"name": "Links"}))["folder"].as_u64().unwrap();
+    run(&mut session, "folder.referenceOpen", json!({"folder": folder}));
+
+    let before = session.mailbox.clone();
+    for bad_id in [json!(null), json!("1"), json!(0), json!(inbox)] {
+        assert!(session.run("folder.referenceRename", &json!({"folder": bad_id, "name": "Changed"})).is_err());
+        assert_eq!(session.mailbox, before);
+    }
+
+    run(&mut session, "folder.allMail", json!({}));
+    assert!(session.run("folder.referenceRename", &json!({"name": "Changed"})).is_err());
+    assert_eq!(session.mailbox, before);
+    run(&mut session, "folder.referenceRename", json!({"folder": folder, "name": "Renamed"}));
+    assert_eq!(session.mailbox.reference_folders[&folder].name, "Renamed");
+    assert!(session.all_mail_accounts().is_some());
+}
+
+#[test]
+fn deleting_an_unrelated_physical_folder_keeps_the_virtual_view_and_selection() {
+    for all_mail in [false, true] {
+        let TestMailbox { mut session, primary, first, .. } = setup();
+        let physical = session.mailbox.add_folder(primary, None, "Empty folder").unwrap();
+        if all_mail {
+            run(&mut session, "folder.allMail", json!({"accounts": [primary]}));
+        } else {
+            let reference = run(&mut session, "folder.referenceNew", json!({"name": "Links"}))["folder"].as_u64().unwrap();
+            run(&mut session, "mail.referenceCopy", json!({"folder": reference, "id": first}));
+            run(&mut session, "folder.referenceOpen", json!({"folder": reference}));
+        }
+        let view = session.view.folder;
+        session.sel.messages = vec![first];
+
+        run(&mut session, "folder.delete", json!({"id": physical}));
+
+        assert_eq!(session.mailbox.folder(physical).unwrap().parent, session.mailbox.folder_of_kind(primary, FolderKind::Deleted));
+        assert_eq!(session.view.folder, view);
+        assert_eq!(session.all_mail_accounts().is_some(), all_mail);
+        assert_eq!(session.sel.messages, [first]);
+        assert_eq!(ids(&mut session), [first]);
+    }
+}
+
+#[test]
 fn uid_validity_change_blocks_old_reference_even_if_the_uid_still_exists() {
     let TestMailbox { mut session, first, second, inbox, .. } = setup();
     let folder = run(&mut session, "folder.referenceNew", json!({"name": "Links"}))["folder"].as_u64().unwrap();

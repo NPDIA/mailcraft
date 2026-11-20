@@ -74,7 +74,10 @@ fn export_name(app: &MailApp, id: &str, params: &Value) -> Option<String> {
             let message = params.get("id").and_then(Value::as_u64).and_then(|id| s.mailbox.message(id)).or_else(|| s.focused_message());
             message.map_or_else(|| clean("message", "eml"), mailcraft_engine::cmd::file::eml_name)
         }
-        "file.exportFolder" => clean(&s.mailbox.folder(s.view.folder).map(|f| f.name.clone()).unwrap_or_default(), "mbox"),
+        "file.exportFolder" => {
+            let target = mailcraft_engine::p::id_strict(params, "id").ok()?.unwrap_or(s.view.folder);
+            clean(&s.mailbox.folder(target)?.name, "mbox")
+        }
         "file.exportCalendar" => clean(
             &params.get("id").and_then(Value::as_u64).and_then(|id| s.mailbox.event(id)).map_or("calendar".to_string(), |e| e.title.clone()),
             "ics",
@@ -135,7 +138,7 @@ pub(crate) fn intercept(app: &mut MailApp, id: &str, params: &Value) -> Option<R
         app.services.file_dialog.as_ref()?;
         return Some(ask(app, FileDialogRequest::Folder, AfterPick::Export { command: id.to_string(), params: params.clone() }));
     }
-    if params.get("path").is_some() || !app.enabled(id) {
+    if params.get("path").is_some() || !app.enabled_for(id, Some(params)) {
         return None;
     }
     let name = export_name(app, id, params)?;
