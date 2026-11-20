@@ -5,7 +5,8 @@
 param(
   [Parameter(Mandatory)] [string] $Installer,
   [Parameter(Mandatory)] [string] $Version,
-  [string] $PreviousInstaller
+  [string] $PreviousInstaller,
+  [switch] $TestImap
 )
 
 $ErrorActionPreference = 'Stop'
@@ -76,6 +77,10 @@ try {
   $FirstInstaller = if ($PreviousInstaller) { $PreviousInstaller } else { $Installer }
   Invoke-Setup $FirstInstaller @("/DIR=$InstallDirectory", '/LANG=korean') 'fresh-install-ko'
   Assert-Installed
+  if ($PreviousInstaller) {
+    $PreviousCliVersion = & $Cli --version
+    if ($LASTEXITCODE -ne 0 -or $PreviousCliVersion -cnotmatch '^mailcraft-cli \S+$') { throw 'The previous CLI could not report its version.' }
+  }
 
   Invoke-Setup $Installer @('/LANG=english') 'upgrade-en'
   Assert-Installed
@@ -83,9 +88,16 @@ try {
   if ($LASTEXITCODE -ne 0 -or $CliVersion -cne "mailcraft-cli $Version") { throw "Unexpected CLI result: $CliVersion" }
   if ((Get-FileHash -LiteralPath $ProfileMarker).Hash -ne $ProfileHash) { throw 'The upgrade modified the synthetic profile.' }
 
+  if ($TestImap) {
+    python (Join-Path $PSScriptRoot 'test-npdia-imap.py') --cli $Cli --output (Join-Path $Results 'installer-imap.json')
+    if ($LASTEXITCODE -ne 0) { throw 'The installed CLI failed the IMAP sign-in and first sync regression test.' }
+  }
+
   if ($PreviousInstaller) {
     Invoke-Setup $PreviousInstaller @('/LANG=english') 'rollback-en'
     Assert-Installed
+    $RolledBackVersion = & $Cli --version
+    if ($LASTEXITCODE -ne 0 -or $RolledBackVersion -cne $PreviousCliVersion) { throw "Unexpected rollback CLI version: $RolledBackVersion" }
     if ((Get-FileHash -LiteralPath $ProfileMarker).Hash -ne $ProfileHash) { throw 'The rollback modified the synthetic profile.' }
   }
 

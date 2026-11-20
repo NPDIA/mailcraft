@@ -40,7 +40,7 @@ jobs:
           if ($Install.ExitCode -ne 0) { throw "Inno Setup installation failed ($($Install.ExitCode))." }
           $Compiler = Get-Item -LiteralPath (Join-Path $Directory 'ISCC.exe')
           "compiler=$($Compiler.FullName)" >> $env:GITHUB_OUTPUT
-      - name: Build and smoke-test the installer
+      - name: Build the installer
         id: build
         shell: pwsh
         env:
@@ -49,11 +49,18 @@ jobs:
           $Metadata = cargo metadata --locked --no-deps --format-version 1 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Could not read the Cargo workspace version.' }
           $Version = ($Metadata.packages | Where-Object name -CEQ 'mailcraft').version
-          $Installer = "dist/installer/MailCraft_NPDIA_Custom-$Version-windows-x64.exe"
           ./packaging/windows/package-npdia.ps1 -Version $Version -SourceCommit $env:GITHUB_SHA -Compiler $env:ISCC
-          ./packaging/windows/test-npdia-installer.ps1 -Version $Version -Installer $Installer
           "version=$Version" >> $env:GITHUB_OUTPUT
-      - name: Upload verified installer and build information
+      - name: Verify the installed Windows app and first IMAP sync
+        shell: pwsh
+        env:
+          NPDIA_PACKAGE_VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          $Version = $env:NPDIA_PACKAGE_VERSION
+          $Installer = "dist/installer/MailCraft_NPDIA_Custom-$Version-windows-x64.exe"
+          ./packaging/windows/test-npdia-installer.ps1 -Version $Version -Installer $Installer -TestImap
+      - name: Upload installer and test evidence
+        if: ${{ !cancelled() && steps.build.conclusion == 'success' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: MailCraft_NPDIA_Custom-${{ steps.build.outputs.version }}-windows-x64
@@ -62,5 +69,6 @@ jobs:
             dist/installer/BUILDINFO.json
             dist/installer/SHA256SUMS.txt
             dist/installer/installer-smoke.json
+            dist/installer/installer-imap.json
             dist/installer/*.log
           if-no-files-found: error

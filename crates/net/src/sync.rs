@@ -526,7 +526,8 @@ pub(crate) fn open_imap_with<'a>(
     if account.oauth.is_some() {
         imap.authenticate_xoauth2(user, secret)?;
     } else {
-        imap.authenticate_password(user, secret)?;
+        // Opt in only on TLS, including after a successful STARTTLS upgrade.
+        imap.authenticate_password_with_login_fallback(user, secret, server.security != Security::None)?;
     }
     Ok(imap)
 }

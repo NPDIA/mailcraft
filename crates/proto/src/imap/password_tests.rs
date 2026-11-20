@@ -19,7 +19,7 @@ fn plain_uses_an_initial_response_only_when_advertised() {
         };
         let mut stream = Script::new(greeting(caps, replies));
         let mut imap = Imap::connect(&mut stream).unwrap();
-        imap.authenticate_password("user@example.org", "invented").unwrap();
+        imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap();
         assert!(imap.is_authenticated());
         let expected = if inline { format!("A0001 AUTHENTICATE PLAIN {payload}\r\n") } else { format!("A0001 AUTHENTICATE PLAIN\r\n{payload}\r\n") };
         assert_eq!(stream.sent(), expected);
@@ -38,7 +38,7 @@ fn a_plain_refusal_is_redacted_and_never_retried_with_login() {
     let payload = mailcraft_charset::base64::STANDARD.encode(b"\0user@example.org\0invented");
     let mut stream = Script::new(greeting("AUTH=PLAIN SASL-IR", &format!("A0001 NO [AUTHENTICATIONFAILED] invented {payload}\r\n")));
     let mut imap = Imap::connect(&mut stream).unwrap();
-    let error = imap.authenticate_password("user@example.org", "invented").unwrap_err();
+    let error = imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap_err();
     assert!(matches!(error, ProtoError::Auth(_)));
     assert!(!format!("{error:?} {imap:?}").contains("invented"));
     assert!(!format!("{error:?} {imap:?}").contains(&payload));
@@ -47,18 +47,85 @@ fn a_plain_refusal_is_redacted_and_never_retried_with_login() {
 }
 
 #[test]
-fn a_refusal_before_the_challenge_sends_no_password() {
+fn a_refusal_before_the_challenge_sends_no_password_by_default() {
     let mut stream = Script::new(greeting("AUTH=PLAIN", "A0001 NO unavailable\r\n"));
     assert!(Imap::connect(&mut stream).unwrap().authenticate_password("user@example.org", "invented").is_err());
     assert_eq!(stream.sent(), "A0001 AUTHENTICATE PLAIN\r\n");
 }
 
 #[test]
-fn repeated_challenges_cancel_and_never_authenticate() {
-    for replies in ["+ first\r\n+ second\r\nA0001 OK ignored\r\n", "+ first\r\n+ second\r\n+ third\r\n"] {
+fn a_plain_refusal_before_the_challenge_retries_with_login_then_identifies() {
+    let mut stream =
+        Script::new(greeting("AUTH=PLAIN ID", "A0001 NO PLAIN unavailable\r\nA0002 OK [CAPABILITY IMAP4rev1 ID] welcome\r\nA0003 OK ID done\r\n"));
+    let mut imap = Imap::connect(&mut stream).unwrap();
+    imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap();
+    assert!(imap.is_authenticated());
+    assert_eq!(stream.sent(), "A0001 AUTHENTICATE PLAIN\r\nA0002 LOGIN \"user@example.org\" \"invented\"\r\nA0003 ID (\"name\" \"MailCraft\")\r\n");
+    assert!(stream.finished());
+}
+
+#[test]
+fn an_early_plain_refusal_preserves_the_error_when_login_is_disabled() {
+    for (caps, refusal) in [
+        ("AUTH=PLAIN LOGINDISABLED", "A0001 NO PLAIN unavailable\r\n"),
+        ("AUTH=PLAIN LOGINDISABLED", "A0001 NO [CAPABILITY IMAP4rev1 AUTH=PLAIN] PLAIN unavailable\r\n"),
+        ("AUTH=PLAIN", "A0001 NO [CAPABILITY IMAP4rev1 AUTH=PLAIN LOGINDISABLED] PLAIN unavailable\r\n"),
+    ] {
+        let mut stream = Script::new(greeting(caps, refusal));
+        let mut imap = Imap::connect(&mut stream).unwrap();
+        let error = imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap_err();
+        assert!(matches!(error, ProtoError::Auth(_)));
+        assert!(error.to_string().contains("PLAIN unavailable"));
+        assert!(!imap.is_authenticated());
+        assert_eq!(stream.sent(), "A0001 AUTHENTICATE PLAIN\r\n");
+    }
+}
+
+#[test]
+fn a_plain_refusal_after_the_challenge_never_retries_with_login() {
+    let payload = mailcraft_charset::base64::STANDARD.encode(b"\0user@example.org\0invented");
+    let mut stream = Script::new(greeting("AUTH=PLAIN", "+ continue\r\nA0001 NO PLAIN refused\r\n"));
+    let mut imap = Imap::connect(&mut stream).unwrap();
+    let error = imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap_err();
+    assert!(matches!(error, ProtoError::Auth(_)));
+    assert!(!imap.is_authenticated());
+    assert_eq!(stream.sent(), format!("A0001 AUTHENTICATE PLAIN\r\n{payload}\r\n"));
+}
+
+#[test]
+fn login_fallback_requires_a_no_reply_to_the_plain_command() {
+    for replies in ["A0001 BAD unknown\r\n", "* BYE goodbye\r\n", "A0002 NO wrong tag\r\n", "* NO untagged\r\n", ""] {
         let mut stream = Script::new(greeting("AUTH=PLAIN", replies));
         let mut imap = Imap::connect(&mut stream).unwrap();
-        assert!(imap.authenticate_password("user@example.org", "invented").is_err());
+        assert!(imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).is_err(), "{replies:?}");
+        assert!(!imap.is_authenticated());
+        assert_eq!(stream.sent(), "A0001 AUTHENTICATE PLAIN\r\n", "{replies:?}");
+    }
+}
+
+#[test]
+fn a_failed_login_fallback_reports_that_refusal_without_credentials() {
+    let payload = mailcraft_charset::base64::STANDARD.encode(b"\0user@example.org\0invented");
+    let mut stream = Script::new(greeting("AUTH=PLAIN", &format!("A0001 NO PLAIN unavailable\r\nA0002 NO LOGIN refused: invented {payload}\r\n")));
+    let mut imap = Imap::connect(&mut stream).unwrap();
+    let error = imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).unwrap_err();
+    assert!(matches!(error, ProtoError::Auth(_)));
+    assert!(error.to_string().contains("LOGIN refused"));
+    let diagnostic = format!("{error} {error:?} {imap:?}");
+    assert!(!diagnostic.contains("invented"));
+    assert!(!diagnostic.contains(&payload));
+    assert!(!imap.is_authenticated());
+    assert_eq!(stream.sent(), "A0001 AUTHENTICATE PLAIN\r\nA0002 LOGIN \"user@example.org\" \"invented\"\r\n");
+}
+
+#[test]
+fn repeated_challenges_cancel_and_never_authenticate() {
+    for replies in
+        ["+ first\r\n+ second\r\nA0001 OK ignored\r\n", "+ first\r\n+ second\r\nA0001 NO cancelled\r\n", "+ first\r\n+ second\r\n+ third\r\n"]
+    {
+        let mut stream = Script::new(greeting("AUTH=PLAIN", replies));
+        let mut imap = Imap::connect(&mut stream).unwrap();
+        assert!(imap.authenticate_password_with_login_fallback("user@example.org", "invented", true).is_err());
         assert!(!imap.is_authenticated());
         assert!(stream.sent().ends_with("\r\n*\r\n"));
     }

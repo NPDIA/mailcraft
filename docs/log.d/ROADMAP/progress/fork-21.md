@@ -1,0 +1,1 @@
+| 2026-11-20 | The NPDIA fork can use LOGIN over TLS after a server refuses PLAIN before credentials are sent. The change is reconstructed from the prior sign-in report and its upstream compatibility proposal. [Fork #21](https://github.com/NPDIA/mailcraft/issues/21) [Upstream #1689](https://github.com/UCS-Care-Group/mailcraft/issues/1689) |

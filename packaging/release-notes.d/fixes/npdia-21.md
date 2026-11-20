@@ -1,0 +1,1 @@
+- Fix IMAP sign-in for Bizmeka and similar servers that reject PLAIN before requesting credentials. On TLS, MailCraft can try LOGIN once when the server permits it. [Fork #21](https://github.com/NPDIA/mailcraft/issues/21)

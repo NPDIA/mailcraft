@@ -9,6 +9,13 @@ impl<S: Read + Write> Imap<S> {
     /// secure the stream first. Unknown capabilities are queried here; known ones are reused.
     /// A refusal never triggers a second attempt with another mechanism.
     pub fn authenticate_password(&mut self, user: &str, password: &str) -> Result<(), ProtoError> {
+        self.authenticate_password_with_login_fallback(user, password, false)
+    }
+
+    /// The fork's compatibility path for peers that advertise PLAIN but immediately refuse it.
+    /// The caller may allow LOGIN fallback only after TLS is established. It is tried once on a
+    /// tagged NO before any PLAIN response, and only while the server permits LOGIN.
+    pub fn authenticate_password_with_login_fallback(&mut self, user: &str, password: &str, allow_login_fallback: bool) -> Result<(), ProtoError> {
         if password.is_empty() {
             return Err(ProtoError::Auth(said!("enter a password to sign in")));
         }
@@ -21,6 +28,7 @@ impl<S: Read + Write> Imap<S> {
         if !self.offers("AUTH=PLAIN") {
             return self.login(user, password);
         }
+        let fallback_allowed = allow_login_fallback && !self.offers("LOGINDISABLED");
         if user.contains('\0') || password.contains('\0') {
             return Err(ProtoError::Auth(said!("PLAIN needs a user name and password without NUL characters")));
         }
@@ -61,6 +69,7 @@ impl<S: Read + Write> Imap<S> {
             _ if cancelled => Err(ProtoError::Auth(said!("the server requested more than one PLAIN response"))),
             Status::Ok if !sent => Err(ProtoError::Protocol(said!("the server accepted a password that was not sent"))),
             Status::Ok => self.signed_in(&verdict),
+            Status::No if fallback_allowed && !sent && !self.offers("LOGINDISABLED") => self.login(user, password),
             Status::No => Err(ProtoError::Auth(self.refusal(&verdict))),
             _ => Err(ProtoError::Rejected(self.refusal(&verdict))),
         }
