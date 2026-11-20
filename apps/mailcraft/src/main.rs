@@ -160,7 +160,7 @@ impl HostUpdates {
     /// For a copy that updates itself and is one of the project's packages, in a run that keeps
     /// its settings.
     fn of_this_copy() -> Option<HostUpdates> {
-        if build_sha() == "dev" || !prefs_enabled() {
+        if build_sha() == "dev" || !prefs_enabled() || mailcraft_net::update_download::release_keys().is_empty() {
             return None;
         }
         let install = install::this_copy();
@@ -676,7 +676,7 @@ fn run_window(options: eframe::NativeOptions, creator: eframe::AppCreator<'_>, c
             seen.store(true, std::sync::atomic::Ordering::Relaxed);
             creator(cc)
         });
-        let mut app = WithTokens(eframe::create_native("MailCraft", options, creator, &event_loop));
+        let mut app = WithTokens(eframe::create_native("MailCraft_NPDIA_Custom", options, creator, &event_loop));
         event_loop.run_app(&mut app)?;
         if started.load(std::sync::atomic::Ordering::Relaxed) {
             Ok(())
@@ -687,7 +687,7 @@ fn run_window(options: eframe::NativeOptions, creator: eframe::AppCreator<'_>, c
     #[cfg(not(any(target_os = "linux", target_os = "freebsd")))]
     {
         let _ = close_to_tray;
-        eframe::run_native("MailCraft", options, creator)
+        eframe::run_native("MailCraft_NPDIA_Custom", options, creator)
     }
 }
 
@@ -1390,7 +1390,7 @@ fn services(
     }
 }
 
-/// The download of a newer release, for a copy that updates itself (the `.msi`, the macOS app,
+/// The download of a newer release, for a copy that updates itself (the fork Windows installer, the macOS app,
 /// an AppImage) and is one of the project's packages, into the data folder's `updates/`, on a
 /// background thread; checked by the release's own signature there (`mailcraft_net`). What was
 /// checked, and the SHA-256 its signed list gives, is noted for installing it at exit.
@@ -1417,7 +1417,7 @@ fn update_download(
 }
 
 /// The application id of every window (by which Wayland desktops find the icon).
-const APP_ID: &str = "io.github.billsecond.mailcraft";
+const APP_ID: &str = "io.github.npdia.mailcraft";
 
 /// Window, Dock and taskbar icon.
 fn app_icon() -> Option<egui::IconData> {
@@ -1508,8 +1508,7 @@ fn main() -> eframe::Result {
     // First, so the panic hook and every start-up warning are recorded (`logging`).
     let logger = logging::install();
     logging::install_panic_hook();
-    // A copy of the program in the data folder that installs an `.msi` once MailCraft has gone
-    // (Windows), and does nothing else (`self_update`).
+    // A copy of the program in the data folder runs the signed fork setup after MailCraft exits.
     let all: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
     if all.first().is_some_and(|a| a == self_update::FINISH_UPDATE) {
         // (This copy runs from the data folder, not from where the installer put MailCraft.)
@@ -1547,7 +1546,10 @@ fn main() -> eframe::Result {
     let updates = HostUpdates::of_this_copy();
     let update_start = match &updates {
         Some(updates) => {
-            if after_update {
+            if updates.install == install::Install::Inno && !self_update::wait_for_lock(&updates.folders, std::time::Duration::from_secs(30)) {
+                return Ok(());
+            }
+            if after_update && updates.install != install::Install::Inno {
                 self_update::wait_for_the_old_one(&updates.folders);
             }
             let start = self_update::at_start(&updates.folders, env!("CARGO_PKG_VERSION"));
@@ -1624,7 +1626,7 @@ fn main() -> eframe::Result {
     }
     let mut options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("MailCraft")
+            .with_title("MailCraft_NPDIA_Custom")
             .with_app_id(APP_ID)
             .with_inner_size([1440.0, 920.0])
             .with_min_inner_size([760.0, 480.0])

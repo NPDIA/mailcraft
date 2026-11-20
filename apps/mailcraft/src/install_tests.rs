@@ -12,22 +12,22 @@ fn v(text: &str) -> Version {
 fn the_file_for_each_copy() {
     let version = v("0.5.0");
     for (install, arch, name) in [
-        (Install::Msi, "x86_64", Some("mailcraft-0.5.0-windows-x64.msi")),
-        (Install::Msi, "x86", Some("mailcraft-0.5.0-windows-x86.msi")),
-        (Install::Msi, "aarch64", Some("mailcraft-0.5.0-windows-arm64.msi")),
+        (Install::Inno, "x86_64", Some("MailCraft_NPDIA_Custom-0.5.0-windows-x64.exe")),
+        (Install::Inno, "x86", Some("MailCraft_NPDIA_Custom-0.5.0-windows-x86.exe")),
+        (Install::Inno, "aarch64", Some("MailCraft_NPDIA_Custom-0.5.0-windows-arm64.exe")),
         (Install::MacApp, "aarch64", Some("mailcraft-0.5.0-macos-universal.dmg")),
         (Install::MacApp, "x86_64", Some("mailcraft-0.5.0-macos-universal.dmg")),
         (Install::AppImage, "x86_64", Some("mailcraft-0.5.0-linux-x86_64.AppImage")),
         (Install::AppImage, "aarch64", Some("mailcraft-0.5.0-linux-aarch64.AppImage")),
         (Install::AppImage, "riscv64", None),
-        (Install::Msi, "powerpc", None),
+        (Install::Inno, "powerpc", None),
         (Install::NoticeOnly, "x86_64", None),
     ] {
         assert_eq!(install.file_name(&version, arch).as_deref(), name, "{install:?} {arch}");
     }
-    assert_eq!(Install::Msi.file_name(&v("1.2.3-rc.1"), "x86_64").as_deref(), Some("mailcraft-1.2.3-rc.1-windows-x64.msi"));
+    assert_eq!(Install::Inno.file_name(&v("1.2.3-rc.1"), "x86_64").as_deref(), Some("MailCraft_NPDIA_Custom-1.2.3-rc.1-windows-x64.exe"));
     // Every name is one a release's file may have.
-    for install in [Install::Msi, Install::MacApp, Install::AppImage] {
+    for install in [Install::Inno, Install::MacApp, Install::AppImage] {
         for arch in ["x86_64", "x86", "aarch64"] {
             if let Some(name) = install.file_name(&v("10.20.30"), arch) {
                 assert!(mailcraft_model::update::is_file_name(&name), "{name}");
@@ -37,10 +37,10 @@ fn the_file_for_each_copy() {
 }
 
 #[test]
-fn an_msi_copy_is_the_one_the_installer_registered() {
+fn an_inno_copy_is_the_one_the_installer_registered() {
     let exe = Path::new(r"C:\Program Files\MailCraft\mailcraft.exe");
-    assert_eq!(windows(exe, Some(Path::new(r"C:\Program Files\MailCraft\mailcraft.exe"))), Install::Msi);
-    assert_eq!(windows(exe, Some(Path::new(r"c:\program files\mailcraft\MAILCRAFT.EXE"))), Install::Msi);
+    assert_eq!(windows(exe, Some(Path::new(r"C:\Program Files\MailCraft\mailcraft.exe"))), Install::Inno);
+    assert_eq!(windows(exe, Some(Path::new(r"c:\program files\mailcraft\MAILCRAFT.EXE"))), Install::Inno);
     // The portable zip, anywhere, while an installed copy is registered elsewhere; or none.
     let portable = Path::new(r"C:\Users\a\Downloads\mailcraft\mailcraft.exe");
     assert_eq!(windows(portable, Some(exe)), Install::NoticeOnly);
@@ -97,16 +97,16 @@ fn a_mac_app_is_notice_only_while_the_switch_is_off() {
     assert_eq!(updating(Install::MacApp, true, &mut || false), Install::NoticeOnly);
     // The switch is about the Mac alone.
     assert_eq!(updating(Install::AppImage, false, &mut || true), Install::AppImage);
-    assert_eq!(updating(Install::Msi, false, &mut || false), Install::Msi);
+    assert_eq!(updating(Install::Inno, false, &mut || false), Install::Inno);
 }
 
 // #497: a copy this program replaces itself, in a folder it can't write to, is told of new
-// versions only; the `.msi` is Windows Installer's to install.
+// versions only; the Windows setup can install to its registered directory.
 #[test]
 fn a_folder_that_cant_be_written_gives_notice_only() {
     assert_eq!(updating(Install::AppImage, true, &mut || false), Install::NoticeOnly);
     assert_eq!(updating(Install::AppImage, true, &mut || true), Install::AppImage);
-    assert_eq!(updating(Install::Msi, true, &mut || false), Install::Msi);
+    assert_eq!(updating(Install::Inno, true, &mut || false), Install::Inno);
     assert_eq!(updating(Install::NoticeOnly, true, &mut || true), Install::NoticeOnly);
 }
 

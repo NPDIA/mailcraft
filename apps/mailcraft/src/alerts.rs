@@ -10,7 +10,7 @@
 //!   `ActionInvoked` for the alert's default action, where the service has actions. The body is
 //!   escaped where the service reads markup in it, so that what a message says is shown as text
 //!   and nothing in it is fetched. No service: Options says so.
-//! - **Windows**: toasts (`Windows.UI.Notifications`), for the AppUserModelID `MailCraft.MailCraft`
+//! - **Windows**: toasts (`Windows.UI.Notifications`), for the AppUserModelID `MailCraft.NPDIA.Custom`
 //!   that the `.msi` gives its Start menu shortcut: Windows shows a program's toasts only when it
 //!   knows the program by such a shortcut, so a copy the `.msi` didn't install says so in Options.
 //!   The text goes into the toast's XML as text nodes, never as markup. A click while MailCraft
@@ -121,7 +121,7 @@ mod freedesktop {
     const SERVICE: &str = "org.freedesktop.Notifications";
     const PATH: &str = "/org/freedesktop/Notifications";
     /// The desktop entry the service finds the program's name and icon in.
-    const DESKTOP_ENTRY: &str = "io.github.billsecond.mailcraft";
+    const DESKTOP_ENTRY: &str = crate::APP_ID;
     const CALL_TIMEOUT: Duration = Duration::from_secs(3);
     /// How many alerts may wait to go out; more are dropped (a flood is one alert anyway).
     const WAITING: usize = 16;
@@ -313,8 +313,8 @@ mod toasts {
     use super::{Clicks, drain};
 
     /// What the `.msi`'s Start menu shortcut tells Windows the program is (its
-    /// `System.AppUserModel.ID`, `packaging/windows/mailcraft.wxs`).
-    pub const APP_ID: &str = "MailCraft.MailCraft";
+    /// `System.AppUserModel.ID` on the fork’s Start menu shortcut).
+    pub const APP_ID: &str = "MailCraft.NPDIA.Custom";
     /// How many toasts are kept, so that a click on one is still heard.
     const KEPT: usize = 50;
 
@@ -329,7 +329,7 @@ mod toasts {
     impl Toasts {
         pub fn new(ctx: egui::Context) -> Toasts {
             let (clicks, rx) = Clicks::new(ctx);
-            let installed = crate::install::this_copy() == crate::install::Install::Msi;
+            let installed = crate::install::this_copy() == crate::install::Install::Inno;
             Toasts { clicks, rx, installed, turned_off: Mutex::new(false), kept: Mutex::new(VecDeque::new()) }
         }
 

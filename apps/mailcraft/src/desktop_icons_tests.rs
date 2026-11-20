@@ -104,7 +104,7 @@ fn a_link_left_where_the_new_file_is_written_is_never_followed() {
     put(&icon, b"old picture");
     let elsewhere = dir.join("elsewhere");
     put(&elsewhere, b"not ours");
-    let temp = icon.with_file_name("io.github.billsecond.mailcraft.png.new");
+    let temp = icon.with_file_name(format!("{}.png.new", crate::APP_ID));
     std::os::unix::fs::symlink(&elsewhere, &temp).unwrap();
     assert_eq!(refresh_in(&dir).unwrap(), 1);
     assert_eq!(fs::read(&elsewhere).unwrap(), b"not ours");

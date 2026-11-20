@@ -40,7 +40,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, TryRecvError};
 
 use egui::{Ui, vec2};
-use mailcraft_model::update::{Release, Version};
+use mailcraft_model::update::{RELEASE_REPOSITORY, Release, Version};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
@@ -54,8 +54,6 @@ pub const MOST_ASKS: u8 = 3;
 const DAY: i64 = 86_400;
 /// How long after a check that got none the next is tried (seconds).
 const AFTER_A_FAILURE: i64 = 3_600;
-/// The repository the build came from, whose releases are the ones told of.
-const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 /// The command that checks once.
 pub const CHECK: &str = "ui.checkForUpdates";
 /// The refusal of a check by an agent or a script while the daily check is off.
@@ -177,7 +175,7 @@ fn may_check_by_itself(services: &Services) -> bool {
 
 /// The page of `version`'s release, made from its tag as this project writes them.
 fn page_of(version: &Version) -> String {
-    format!("{}/releases/tag/v{version}", REPOSITORY.trim_end_matches('/'))
+    format!("{RELEASE_REPOSITORY}/releases/tag/v{version}")
 }
 
 /// What is said of a newer release, in the status bar and in About.
@@ -842,7 +840,7 @@ mod tests {
         assert_eq!(said(&app), Some(format!("MailCraft {} is available", newer())));
         assert_eq!(app.ui.update_told, newer());
         assert_eq!(app.ui.update_checked, NOW);
-        assert_eq!(app.newer_release().unwrap().page, format!("https://github.com/UCS-Care-Group/mailcraft/releases/tag/v{}", newer()));
+        assert_eq!(app.newer_release().unwrap().page, format!("https://github.com/NPDIA/mailcraft/releases/tag/v{}", newer()));
         saved = app.prefs();
 
         // Within the day: nobody is asked.

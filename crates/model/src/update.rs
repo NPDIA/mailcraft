@@ -9,6 +9,9 @@
 
 use std::cmp::Ordering;
 
+/// Repository for release checks and version notices throughout the fork.
+pub const RELEASE_REPOSITORY: &str = "https://github.com/NPDIA/mailcraft";
+
 /// Most digits in one number of a version.
 const MAX_DIGITS: usize = 6;
 /// Longest pre-release suffix taken.

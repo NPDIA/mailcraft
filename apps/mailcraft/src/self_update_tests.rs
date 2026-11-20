@@ -17,20 +17,13 @@ fn sum(bytes: &[u8]) -> [u8; 32] {
 
 #[test]
 fn the_installer_is_run_with_fixed_arguments() {
-    let run = msiexec(Path::new(r"C:\Users\a\AppData\Roaming\MailCraft\updates\mailcraft-0.5.0-windows-x64.msi"), Path::new(r"C:\x\install.log"));
-    assert!(run.program.ends_with("msiexec.exe"));
-    assert!(run.program.to_string_lossy().contains("System32"));
+    let setup = Path::new(r"C:\setup\MailCraft_NPDIA_Custom-0.5.0-windows-x64.exe");
+    let run = inno_setup(setup, Path::new(r"C:\x\install.log"));
+    assert_eq!(run.program, setup);
     let args: Vec<String> = run.args.iter().map(|a| a.to_string_lossy().into_owned()).collect();
     assert_eq!(
         args,
-        [
-            r"/i",
-            r"C:\Users\a\AppData\Roaming\MailCraft\updates\mailcraft-0.5.0-windows-x64.msi",
-            "/passive",
-            "/norestart",
-            "/log",
-            r"C:\x\install.log"
-        ]
+        ["/SP-", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOCLOSEAPPLICATIONS", "/NORESTARTAPPLICATIONS", r"/LOG=C:\x\install.log"]
     );
     let attach = hdiutil_attach(Path::new("/d/m.dmg"), Path::new("/d/mount"));
     assert_eq!(attach.program, Path::new("/usr/bin/hdiutil"));
@@ -45,21 +38,21 @@ fn the_installer_is_run_with_fixed_arguments() {
 fn the_helpers_job_goes_through_its_arguments_and_nothing_else_does() {
     let base = if cfg!(windows) { r"C:\data\updates" } else { "/data/updates" };
     let job = Job {
-        msi: Path::new(base).join("mailcraft-0.5.0-windows-x64.msi"),
+        installer: Path::new(base).join(Install::Inno.file_name(&Version::parse("0.5.0").unwrap(), std::env::consts::ARCH).unwrap()),
         sha256: sum(b"x"),
         from: "0.4.3".into(),
         to: "0.5.0".into(),
         back: false,
-        start: Some(Path::new(base).join("mailcraft.exe")),
+        restart: true,
     };
     assert_eq!(Job::parse(&job.args()), Some(job.clone()));
-    let back = Job { back: true, start: None, ..job.clone() };
+    let back = Job { from: "0.6.0".into(), back: true, restart: false, ..job.clone() };
     assert_eq!(Job::parse(&back.args()), Some(back));
     let mut bad = job.args();
     bad[2] = "zz".into();
     assert_eq!(Job::parse(&bad), None);
     let mut bad = job.args();
-    bad[1] = "relative.msi".into();
+    bad[1] = "relative.exe".into();
     assert_eq!(Job::parse(&bad), None);
     let mut bad = job.args();
     bad[1] = Path::new(base).join("evil.exe").into_os_string();
@@ -69,6 +62,42 @@ fn the_helpers_job_goes_through_its_arguments_and_nothing_else_does() {
     assert_eq!(Job::parse(&bad), None);
     assert_eq!(Job::parse(&[]), None);
     assert_eq!(Job::parse(&["--sample".into()]), None);
+}
+
+#[test]
+fn the_windows_helper_requires_a_fork_signature_for_a_scheduled_setup() {
+    use ring::rand::SystemRandom;
+    use ring::signature::{Ed25519KeyPair, KeyPair as _};
+
+    let dir = scratch("signed-setup-job");
+    let folders = Folders::new(dir.clone());
+    let name = Install::Inno.file_name(&Version::parse("0.5.0").unwrap(), std::env::consts::ARCH).unwrap();
+    let bytes = b"synthetic next-version setup";
+    let job =
+        Job { installer: folders.updates().join(&name), sha256: sum(bytes), from: "0.4.3".into(), to: "0.5.0".into(), back: false, restart: true };
+    write_record(&folders, &Record { from: job.from.clone(), to: job.to.clone(), back: false, settled: false }).unwrap();
+    let make_key = || Ed25519KeyPair::from_pkcs8(Ed25519KeyPair::generate_pkcs8(&SystemRandom::new()).unwrap().as_ref()).unwrap();
+    let owner = make_key();
+    let untrusted = make_key();
+    let pins = [owner.public_key().as_ref().try_into().unwrap()];
+    let sums = format!("{}  {name}\n", hex(&job.sha256)).into_bytes();
+    let receipt = |signer: &Ed25519KeyPair| mailcraft_net::update_download::Receipt {
+        signature: mailcraft_charset::base64::STANDARD.encode(signer.sign(&sums).as_ref()).into_bytes(),
+        sums: sums.clone(),
+    };
+    assert!(!authorised_job(&job, &folders, &pins), "no signed manifest");
+    write_receipt(&folders.updates(), &receipt(&untrusted)).unwrap();
+    assert!(!authorised_job(&job, &folders, &pins), "untrusted signer");
+    write_receipt(&folders.updates(), &receipt(&owner)).unwrap();
+    assert!(!authorised_job(&job, &folders, &[]), "no trusted keys configured");
+    assert!(!authorised_job(&Job { installer: dir.join(&name), ..job.clone() }, &folders, &pins), "wrong path");
+    assert!(!authorised_job(&Job { sha256: sum(b"different setup"), ..job.clone() }, &folders, &pins), "wrong signed digest");
+    assert!(authorised_job(&job, &folders, &pins));
+    fs::write(&job.installer, bytes).unwrap();
+    assert!(!install_setup(&job, &folders, &mut |_| Some(5)));
+    assert_eq!(fs::read(&job.installer).unwrap(), bytes, "a setup failure leaves staging available");
+    assert!(install_setup(&job, &folders, &mut |_| Some(0)));
+    let _ = fs::remove_dir_all(&dir);
 }
 
 #[test]
@@ -124,33 +153,48 @@ fn an_update_that_didnt_happen_is_said_once() {
 }
 
 #[test]
-fn the_installed_msi_is_kept_one_back() {
-    let dir = scratch("msi");
+fn the_installed_setup_and_receipt_are_kept_one_back() {
+    let dir = scratch("inno");
     let folders = Folders::new(dir.join("data"));
     let download = |name: &str| {
         let updates = dir.join("data").join("updates");
         fs::create_dir_all(&updates).unwrap();
+        fs::write(updates.join(RECEIPT_FILE), name.as_bytes()).unwrap();
         let path = updates.join(name);
         fs::write(&path, name.as_bytes()).unwrap();
         path
     };
-    let job = |msi: PathBuf, from: &str, to: &str, back: bool| Job { sha256: sum(b"x"), msi, from: from.into(), to: to.into(), back, start: None };
-    // The first update: there was no `.msi` of the version it replaced.
-    keep_installed_msi(&folders, &job(download("m-0.5.0.msi"), "0.4.3", "0.5.0", false)).unwrap();
+    let job = |installer: PathBuf, from: &str, to: &str, back: bool| Job {
+        sha256: sum(b"x"),
+        installer,
+        from: from.into(),
+        to: to.into(),
+        back,
+        restart: false,
+    };
+    // The first update: there was no setup for the version it replaced.
+    keep_installed_setup(&folders, &job(download("m-0.5.0.exe"), "0.4.3", "0.5.0", false)).unwrap();
     assert_eq!(read_kept(&folders.this_version()).unwrap().version, "0.5.0");
-    assert!(folders.this_version().join("m-0.5.0.msi").is_file());
+    assert!(folders.this_version().join("m-0.5.0.exe").is_file());
     assert!(read_kept(&folders.previous()).is_none());
     // The next: 0.5.0's is kept back.
-    keep_installed_msi(&folders, &job(download("m-0.6.0.msi"), "0.5.0", "0.6.0", false)).unwrap();
+    keep_installed_setup(&folders, &job(download("m-0.6.0.exe"), "0.5.0", "0.6.0", false)).unwrap();
     assert_eq!(read_kept(&folders.this_version()).unwrap().version, "0.6.0");
     let kept = read_kept(&folders.previous()).unwrap();
-    assert_eq!((kept.version.as_str(), kept.file.as_str()), ("0.5.0", "m-0.5.0.msi"));
-    assert!(folders.previous().join("m-0.5.0.msi").is_file());
+    assert_eq!((kept.version.as_str(), kept.file.as_str()), ("0.5.0", "m-0.5.0.exe"));
+    assert!(folders.previous().join("m-0.5.0.exe").is_file());
+    assert_eq!(fs::read(folders.previous().join(RECEIPT_FILE)).unwrap(), b"m-0.5.0.exe");
+    // With a failed cache write, the previously complete rollback pair is still available.
+    let next = download("m-0.7.0.exe");
+    fs::remove_file(folders.updates().join(RECEIPT_FILE)).unwrap();
+    assert!(keep_installed_setup(&folders, &job(next, "0.6.0", "0.7.0", false)).is_err());
+    assert_eq!(read_kept(&folders.this_version()).unwrap().version, "0.6.0");
+    assert_eq!(read_kept(&folders.previous()).unwrap().version, "0.5.0");
     // Going back: 0.5.0's is the one the running version came from, and none is kept back.
-    let back = folders.previous().join("m-0.5.0.msi");
-    keep_installed_msi(&folders, &job(back, "0.6.0", "0.5.0", true)).unwrap();
+    let back = folders.previous().join("m-0.5.0.exe");
+    keep_installed_setup(&folders, &job(back, "0.6.0", "0.5.0", true)).unwrap();
     assert_eq!(read_kept(&folders.this_version()).unwrap().version, "0.5.0");
-    assert!(folders.this_version().join("m-0.5.0.msi").is_file());
+    assert!(folders.this_version().join("m-0.5.0.exe").is_file());
     assert!(!folders.previous().exists());
     let _ = fs::remove_dir_all(&dir);
 }
@@ -162,20 +206,27 @@ fn left_handed(folders: &Folders) -> usize {
 
 #[test]
 fn the_installer_is_handed_a_checked_copy_and_never_the_download() {
-    let dir = scratch("handed-msi");
+    let dir = scratch("handed-setup");
     let folders = Folders::new(dir.join("data"));
-    let msi = folders.updates().join("mailcraft-0.5.0-windows-x64.msi");
+    let setup = folders.updates().join("MailCraft_NPDIA_Custom-0.5.0-windows-x64.exe");
     fs::create_dir_all(folders.updates()).unwrap();
-    fs::write(&msi, b"the checked installer").unwrap();
-    let job = Job { msi: msi.clone(), sha256: sum(b"the checked installer"), from: "0.4.3".into(), to: "0.5.0".into(), back: false, start: None };
+    fs::write(&setup, b"the checked installer").unwrap();
+    let job = Job {
+        installer: setup.clone(),
+        sha256: sum(b"the checked installer"),
+        from: "0.4.3".into(),
+        to: "0.5.0".into(),
+        back: false,
+        restart: false,
+    };
     let mut handed = Vec::new();
-    let installed = install_msi(&job, &folders, &mut |run| {
-        let given = PathBuf::from(&run.args[1]);
-        assert_ne!(given, msi, "the installer is given the copy");
+    let installed = install_setup(&job, &folders, &mut |run| {
+        let given = run.program.clone();
+        assert_ne!(given, setup, "the installer is given the copy");
         assert!(given.starts_with(folders.handed()), "{}", given.display());
-        assert_eq!(given.file_name(), msi.file_name(), "and by the same name");
+        assert_eq!(given.file_name(), setup.file_name(), "and by the same name");
         // The download changed while the installer runs doesn't change what it reads.
-        fs::write(&msi, b"swapped").unwrap();
+        fs::write(&setup, b"swapped").unwrap();
         assert_eq!(fs::read(&given).unwrap(), b"the checked installer");
         #[cfg(unix)]
         {
@@ -189,13 +240,13 @@ fn the_installer_is_handed_a_checked_copy_and_never_the_download() {
     assert_eq!(handed.len(), 1);
     assert!(!handed[0].exists() && left_handed(&folders) == 0, "the copy and its folder are gone");
     // A file that isn't the one checked (here, the one swapped above) isn't run at all.
-    let installed = install_msi(&job, &folders, &mut |_| panic!("the installer was run on a file that wasn't checked"));
+    let installed = install_setup(&job, &folders, &mut |_| panic!("the installer was run on a file that wasn't checked"));
     assert!(!installed);
     assert_eq!(left_handed(&folders), 0);
-    // Windows Installer's answer is believed only for what it says installed.
-    fs::write(&msi, b"the checked installer").unwrap();
-    assert!(!install_msi(&job, &folders, &mut |_| Some(1603)));
-    assert!(install_msi(&job, &folders, &mut |_| Some(3010)));
+    // Inno setup reports a successful install with exit status zero.
+    fs::write(&setup, b"the checked installer").unwrap();
+    assert!(!install_setup(&job, &folders, &mut |_| Some(5)));
+    assert!(install_setup(&job, &folders, &mut |_| Some(0)));
     let _ = fs::remove_dir_all(&dir);
 }
 
@@ -211,14 +262,14 @@ fn the_signed_digest_is_trusted_even_when_the_download_changes_afterwards() {
         fs::create_dir_all(d).unwrap();
         let path = d.join(name);
         fs::write(&path, b"swapped after the download").unwrap();
-        Ok(mailcraft_net::update_download::Downloaded { path, sha256: sum(b"the signed installer") })
+        Ok(mailcraft_net::update_download::Downloaded { path, sha256: sum(b"the signed installer"), receipt: Default::default() })
     };
-    let verified = crate::updater::download(&release, Install::Msi, &folders.updates(), fetch).unwrap();
+    let verified = crate::updater::download(&release, Install::Inno, &folders.updates(), fetch).unwrap();
     assert_eq!(verified.sha256, sum(b"the signed installer"));
     assert_eq!(verified.version, release.version);
     // So what is installed later is checked against what the release signed, and refused.
-    let job = Job { msi: verified.path, sha256: verified.sha256, from: "0.4.3".into(), to: "9.9.9".into(), back: false, start: None };
-    assert!(!install_msi(&job, &folders, &mut |_| panic!("the installer was run on a file that wasn't signed")));
+    let job = Job { installer: verified.path, sha256: verified.sha256, from: "0.4.3".into(), to: "9.9.9".into(), back: false, restart: false };
+    assert!(!install_setup(&job, &folders, &mut |_| panic!("the installer was run on a file that wasn't signed")));
     let _ = fs::remove_dir_all(&dir);
 }
 
