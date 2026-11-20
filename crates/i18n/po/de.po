@@ -3768,6 +3768,11 @@ msgstr "Die Gmail-Kategorien von \"{name}\" konnten nicht gelesen werden"
 
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
+msgid "Couldn't read folder status"
+msgstr ""
+
+#. why a mail server couldn't be used
+#: crates/net/src/sync.rs
 #, fuzzy
 msgid "Couldn't read the list of folders"
 msgstr "Die Liste der Ordner konnte nicht gelesen werden"

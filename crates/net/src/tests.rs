@@ -2418,6 +2418,88 @@ fn a_server_that_stops_answering_ends_the_run_with_an_error() {
 }
 
 #[test]
+fn a_list_timeout_retries_discovery_before_any_imap_writes() {
+    let imap = two_way(true, true);
+    let smtp = Fake::smtp(smtp_world());
+    let folders = synced_folders(&imap);
+    let before = {
+        let mut world = imap.world();
+        world.stall_once_on = Some(" LIST ".into());
+        world.log.clear();
+        world.connections
+    };
+    let mut asked = request(account(Some(&imap), Some(&smtp)), folders);
+    asked.outbox.push(hello());
+    asked.ops.push(flags("INBOX", 5, Some(true), None, None));
+    let result = sync_within(&asked, impatient(Duration::from_millis(200), Duration::from_secs(5)));
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert_eq!((result.sent.as_slice(), result.flagged.len()), (&[9][..], 1));
+    assert!(result.listed.iter().any(|folder| folder.remote == "Projects"));
+    assert_eq!(smtp.world().delivered.len(), 1);
+    let world = imap.world();
+    assert_eq!((world.connections - before, world.sent(" LIST "), world.sent("APPEND"), world.sent("UID STORE")), (2, 2, 1, 1));
+    let second_list = world.log.iter().rposition(|line| line.contains(" LIST ")).unwrap();
+    for verb in ["APPEND", "UID STORE"] {
+        assert!(world.log.iter().position(|line| line.contains(verb)).unwrap() > second_list);
+    }
+}
+
+#[test]
+fn a_persistent_list_timeout_preserves_the_current_mapping_and_pending_changes() {
+    let imap = two_way(true, true);
+    let folders = synced_folders(&imap);
+    let before = {
+        let mut world = imap.world();
+        world.stall_on = Some(" LIST ".into());
+        world.log.clear();
+        world.connections
+    };
+    let pending = vec![flags("INBOX", 5, Some(true), None, None)];
+    let result = sync_within(&pushing(&imap, &folders, pending.clone()), impatient(Duration::from_millis(200), Duration::from_secs(5)));
+    assert_eq!(result.errors, ["Couldn't read the list of folders: connection problem: the server took too long to answer"]);
+    assert!(result.listed.is_empty() && result.folders.is_empty() && result.flagged.is_empty());
+    assert_eq!(applied(&folders, &result), folders);
+    {
+        let mut world = imap.world();
+        assert_eq!((world.connections - before, world.sent(" LIST "), world.sent("UID STORE")), (2, 2, 0));
+        world.stall_on = None;
+    }
+    let later = sync(&pushing(&imap, &folders, pending));
+    assert!(later.errors.is_empty());
+    assert_eq!(later.flagged.len(), 1);
+    assert_eq!(sent(&imap, "UID STORE"), 1);
+}
+
+#[test]
+fn a_status_timeout_reads_folders_without_replaying_completed_writes() {
+    let imap = two_way(true, true);
+    let smtp = Fake::smtp(smtp_world());
+    let folders = without(synced_folders(&imap), "INBOX", &[1]);
+    let before = {
+        let mut world = imap.world();
+        world.mailboxes.iter_mut().find(|folder| folder.raw == "Projects").unwrap().messages.push(message(2, "", "A new project"));
+        world.stall_on = Some(" STATUS ".into());
+        world.log.clear();
+        world.connections
+    };
+    let mut asked = request(account(Some(&imap), Some(&smtp)), folders);
+    asked.outbox.push(hello());
+    asked.ops.push(moving(901, "INBOX", 1, "Projects", PROJECTS));
+    let result = sync_within(&asked, impatient(Duration::from_millis(200), Duration::from_secs(5)));
+    assert!(result.errors.is_empty(), "{:?}", result.errors);
+    assert_eq!((result.sent.as_slice(), result.moved.len()), (&[9][..], 1));
+    assert_eq!(smtp.world().delivered.len(), 1);
+    let projects = result.folders.iter().find(|folder| folder.remote == "Projects").unwrap();
+    assert_eq!((projects.id, projects.uid_validity, projects.status), (Some(PROJECTS), 31, None));
+    assert_eq!(uids(&projects.new), [2]);
+    let world = imap.world();
+    assert_eq!((world.connections - before, world.sent(" LIST "), world.sent("APPEND"), world.sent("UID MOVE")), (2, 1, 1, 1));
+    let last_login = world.log.iter().rposition(|line| line.contains(" LOGIN ")).unwrap();
+    assert!(world.log[last_login..].iter().all(|line| !line.contains(" STATUS ")));
+    assert!(world.log[last_login..].iter().any(|line| line.contains("EXAMINE \"Projects\"")));
+}
+
+#[test]
 fn a_server_that_lets_a_byte_through_now_and_then_is_not_waited_for_for_ever() {
     let imap = Fake::imap(imap_world());
     // Every read gets its byte in time; the answer as a whole would take five seconds.

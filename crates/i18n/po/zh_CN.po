@@ -3977,6 +3977,11 @@ msgstr "无法读取 Gmail 的“{name}”类别"
 
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
+msgid "Couldn't read folder status"
+msgstr ""
+
+#. why a mail server couldn't be used
+#: crates/net/src/sync.rs
 #, fuzzy
 msgid "Couldn't read the list of folders"
 msgstr "无法读取文件夹列表"

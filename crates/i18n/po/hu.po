@@ -3977,6 +3977,11 @@ msgstr "Nem tudtam elolvasni Gmail \"{name}\" kategóriáit."
 
 #. why a mail server couldn't be used
 #: crates/net/src/sync.rs
+msgid "Couldn't read folder status"
+msgstr ""
+
+#. why a mail server couldn't be used
+#: crates/net/src/sync.rs
 #, fuzzy
 msgid "Couldn't read the list of folders"
 msgstr "Nem sikerült elolvasni a mappákat"

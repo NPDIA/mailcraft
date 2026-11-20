@@ -1,6 +1,6 @@
 # SPDX-FileCopyrightText: MailCraft contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
-"""Exercise first Inbox sync through the installed CLI on a disposable Windows runner."""
+"""Exercise IMAP sign-in and folder recovery through the installed CLI."""
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
@@ -33,6 +33,13 @@ MESSAGE = (
     "Read-only IMAP loopback fixture.\r\n"
 ).encode("ascii")
 INTERNAL_DATE = RECEIVED_AT.strftime("%d-%b-%Y %H:%M:%S +0000").encode("ascii")
+RECOVERY_SUBJECT = "Synthetic message from the recovered folder"
+RECOVERY_MESSAGE = MESSAGE.replace(SUBJECT.encode("ascii"), RECOVERY_SUBJECT.encode("ascii"), 1)
+RECOVERY_FOLDERS = {b"INBOX": None, b"Recovery": RECOVERY_MESSAGE, b"Other": None}
+AUTH_METHODS = ["AUTHENTICATE PLAIN", "LOGIN"]
+# Allow the installed client's production 60-second IMAP read timeout to expire.
+SILENCE_TIMEOUT = 80
+RECOVERY_TIMEOUT = 100
 
 CREATE_CERTIFICATES = r"""
 using namespace System.Security.Cryptography
@@ -111,8 +118,8 @@ try {
 """
 
 
-def call(args, *, env=None, password="", success=True):
-    result = subprocess.run(args, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=45)
+def call(args, *, env=None, password="", success=True, timeout=45):
+    result = subprocess.run(args, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
     if (result.returncode == 0) != success:
         detail = result.stderr.strip()
         if password:
@@ -121,10 +128,19 @@ def call(args, *, env=None, password="", success=True):
     return result
 
 
-def imap(listener, context, password, *, untrusted=False):
+def status_folder(args, folders, seen):
+    folder = shlex.split(args.decode("ascii"))[0].encode("ascii")
+    if folder not in folders or folder in seen:
+        raise RuntimeError("Unexpected or repeated IMAP STATUS target")
+    seen.add(folder)
+    return folder
+
+
+def imap(listener, context, password, *, untrusted=False, folders=None, stall=None):
+    folders = {b"INBOX": MESSAGE} if folders is None else folders
     connection, _ = listener.accept()
     with connection:
-        connection.settimeout(15)
+        connection.settimeout(SILENCE_TIMEOUT if stall else 15)
         try:
             stream = context.wrap_socket(connection, server_side=True)
         except ssl.SSLError as err:
@@ -136,7 +152,10 @@ def imap(listener, context, password, *, untrusted=False):
                 raise RuntimeError("The client accepted the fixture CA before trust was configured")
             stream.sendall(b"* OK synthetic loopback IMAP ready\r\n")
             methods = []
-            fetched = False
+            fetched = []
+            opened = None
+            list_commands = 0
+            status_targets = set()
             for _ in range(30):
                 raw = incoming.readline(4096)
                 if not raw:
@@ -146,9 +165,9 @@ def imap(listener, context, password, *, untrusted=False):
                     raise RuntimeError("Unexpected client input without an IMAP command tag")
                 verb, _, args = request.partition(b" ")
                 verb = verb.upper()
-                reply = b""
                 if verb == b"CAPABILITY":
-                    reply = b"* CAPABILITY " + CAPABILITIES + b"\r\n"
+                    stream.sendall(b"* CAPABILITY " + CAPABILITIES + b"\r\n" + tag + b" OK fixture completed\r\n")
+                    continue
                 elif verb == b"AUTHENTICATE":
                     if methods or args.upper() != b"PLAIN":
                         raise RuntimeError("Expected one PLAIN command without a credential payload")
@@ -156,29 +175,53 @@ def imap(listener, context, password, *, untrusted=False):
                     stream.sendall(tag + b" NO fixture refuses PLAIN before a challenge\r\n")
                     continue
                 elif verb == b"LOGIN":
-                    if methods != ["AUTHENTICATE PLAIN"] or shlex.split(args.decode("ascii")) != [ADDRESS, password]:
+                    if methods != AUTH_METHODS[:1] or shlex.split(args.decode("ascii")) != [ADDRESS, password]:
                         raise RuntimeError("Unexpected LOGIN attempt or synthetic sign-in")
                     methods.append("LOGIN")
                     reply = tag + b" OK [CAPABILITY " + CAPABILITIES + b"] signed in\r\n"
                     stream.sendall(reply)
                     continue
-                elif methods != ["AUTHENTICATE PLAIN", "LOGIN"]:
+                elif methods != AUTH_METHODS:
                     raise RuntimeError("Expected sign-in before mailbox access")
-                elif verb == b"LIST":
-                    reply = b'* LIST (\\HasNoChildren) "/" "INBOX"\r\n'
+                if verb == b"LIST":
+                    list_commands += 1
+                elif verb == b"STATUS":
+                    folder = status_folder(args, folders, status_targets)
+                if verb == stall:
+                    # No tagged response or other data. Only the remaining pipelined STATUS
+                    # commands may arrive on this connection before the client closes it.
+                    try:
+                        while pending := incoming.readline(4096):
+                            _, _, queued = pending.rstrip(b"\r\n").partition(b" ")
+                            if stall != b"STATUS" or not queued.startswith(b"STATUS ") or len(status_targets) >= 2:
+                                raise RuntimeError("Unexpected command on the timed-out IMAP connection")
+                            status_folder(queued.removeprefix(b"STATUS "), folders, status_targets)
+                    except (ConnectionResetError, ssl.SSLEOFError):
+                        pass
+                    if stall == b"STATUS" and status_targets != set(folders) - {b"INBOX"}:
+                        raise RuntimeError("Expected one STATUS for each non-Inbox folder before reconnecting")
+                    return {"auth": methods, "list_commands": list_commands, "status_commands": len(status_targets)}
+                if verb == b"LIST":
+                    reply = b"".join(b'* LIST (\\HasNoChildren) "/" "' + folder + b'"\r\n' for folder in folders)
                 elif verb == b"ID":
                     reply = b"* ID NIL\r\n"
                 elif verb == b"STATUS":
-                    reply = b'* STATUS "INBOX" (MESSAGES 1 UNSEEN 1 UIDNEXT 2 UIDVALIDITY 42)\r\n'
+                    count = int(folders[folder] is not None)
+                    reply = b'* STATUS "' + folder + f'" (MESSAGES {count} UNSEEN {count} UIDNEXT {count + 1} UIDVALIDITY 42)\r\n'.encode("ascii")
                 elif verb in (b"EXAMINE", b"SELECT"):
-                    reply = b"* 1 EXISTS\r\n* 0 RECENT\r\n* OK [UIDVALIDITY 42] valid\r\n* OK [UIDNEXT 2] next\r\n"
+                    opened = shlex.split(args.decode("ascii"))[0].encode("ascii")
+                    count = int(folders[opened] is not None)
+                    reply = f"* {count} EXISTS\r\n* 0 RECENT\r\n* OK [UIDVALIDITY 42] valid\r\n* OK [UIDNEXT {count + 1}] next\r\n".encode("ascii")
                 elif verb == b"UID" and args.upper().startswith(b"FETCH "):
-                    if b"BODY.PEEK[]" in args.upper():
+                    message = folders[opened]
+                    if message is None:
+                        reply = b""
+                    elif b"BODY.PEEK[]" in args.upper():
                         reply = (b'* 1 FETCH (UID 1 FLAGS () INTERNALDATE "' + INTERNAL_DATE + b'" BODY[] {'
-                                 + str(len(MESSAGE)).encode("ascii") + b"}\r\n" + MESSAGE + b")\r\n")
-                        fetched = True
+                                 + str(len(message)).encode("ascii") + b"}\r\n" + message + b")\r\n")
+                        fetched.append(opened)
                     elif b"RFC822.SIZE" in args.upper():
-                        reply = f"* 1 FETCH (UID 1 RFC822.SIZE {len(MESSAGE)})\r\n".encode("ascii")
+                        reply = f"* 1 FETCH (UID 1 RFC822.SIZE {len(message)})\r\n".encode("ascii")
                     else:
                         reply = b"* 1 FETCH (UID 1 FLAGS ())\r\n"
                 elif verb == b"LOGOUT":
@@ -187,9 +230,19 @@ def imap(listener, context, password, *, untrusted=False):
                 else:
                     raise RuntimeError("Unexpected read-only IMAP operation")
                 stream.sendall(reply + tag + b" OK fixture completed\r\n")
-            if methods != ["AUTHENTICATE PLAIN", "LOGIN"] or not fetched:
-                raise RuntimeError("Expected one PLAIN refusal, one LOGIN, and one fetched body on the same TLS connection")
-            return {"tls": stream.version(), "auth": methods}
+            if stall or methods != AUTH_METHODS or fetched != [folder for folder, message in folders.items() if message is not None]:
+                raise RuntimeError("The IMAP fixture did not observe the expected stall, sign-in, or message fetch")
+            return {"tls": stream.version(), "auth": methods, "list_commands": list_commands, "status_commands": len(status_targets)}
+
+
+def prove_recovery(listener, context, password, stall):
+    before = imap(listener, context, password, folders=RECOVERY_FOLDERS, stall=stall)
+    after = imap(listener, context, password, folders=RECOVERY_FOLDERS)
+    observed = (before["list_commands"], before["status_commands"], after["list_commands"], after["status_commands"])
+    expected = (1, 0, 1, 2) if stall == b"LIST" else (1, 2, 0, 0)
+    if observed != expected:
+        raise RuntimeError(f"Unexpected LIST or STATUS command counts across the two connections: {observed}")
+    return {"auth": [before["auth"], after["auth"]], "list_commands": observed[::2], "status_commands": observed[1::2]}
 
 
 def test(cli, directory):
@@ -233,7 +286,19 @@ def test(cli, directory):
                 environment["SSL_CERT_FILE"] = str(directory / "ca.pem")
             session = pool.submit(imap, listener, context, password)
             call(sync, env=environment, password=password)
-            result = session.result(timeout=20)
+            first = session.result(timeout=20)
+            result = {"tls": first["tls"], "auth": first["auth"]}
+            for stall in (b"LIST", b"STATUS"):
+                key = stall.decode("ascii").lower() + "_timeout"
+                recovered = directory / f"{key}.mailcraft"
+                call([cli, "run", "--cmd", "account.add=" + json.dumps(account), "--save", recovered])
+                recovery = pool.submit(prove_recovery, listener, context, password, stall)
+                call([cli, "sync", recovered, "--account", ADDRESS], env=environment, password=password, timeout=RECOVERY_TIMEOUT)
+                evidence = recovery.result(timeout=20)
+                messages = json.loads(call([cli, "list", recovered, "--folder", "Recovery"]).stdout)["messages"]
+                if len(messages) != 1 or messages[0]["subject"] != RECOVERY_SUBJECT:
+                    raise RuntimeError("The installed client did not retain the recovered folder's synthetic message")
+                result[key] = dict(evidence, folder="Recovery", messages=len(messages))
         finally:
             if store_command:
                 call([*store_command, "Remove"])
