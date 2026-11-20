@@ -20077,7 +20077,7 @@ msgid "What's new and how to get it:"
 msgstr "Co nowego i jak to uzyskać:"
 
 #. interface
-#: crates/ui-egui/src/forms.rs crates/ui-egui/src/reading/invitation.rs
+#: crates/ui-egui/src/reading/invitation.rs
 #, fuzzy
 msgid "When"
 msgstr "Kiedy"
@@ -22169,6 +22169,13 @@ msgstr ""
 #, fuzzy
 msgid "replies can go to at most {n} addresses"
 msgstr "odpowiedzi mogą trafiać najwyżej na {n} adresów"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+#, fuzzy
+msgctxt "rule condition"
+msgid "When"
+msgstr "Kiedy"
 
 #. name
 #: crates/engine/src/agent.rs

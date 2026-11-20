@@ -20005,7 +20005,7 @@ msgid "What's new and how to get it:"
 msgstr "Mi új és hogyan lehet megszerezni:"
 
 #. interface
-#: crates/ui-egui/src/forms.rs crates/ui-egui/src/reading/invitation.rs
+#: crates/ui-egui/src/reading/invitation.rs
 #, fuzzy
 msgid "When"
 msgstr "Mikor"
@@ -22090,6 +22090,13 @@ msgstr ""
 #, fuzzy
 msgid "replies can go to at most {n} addresses"
 msgstr "válasz lehet menni a legtöbb {n} címek"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+#, fuzzy
+msgctxt "rule condition"
+msgid "When"
+msgstr "Mikor"
 
 #. name
 #: crates/engine/src/agent.rs

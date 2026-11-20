@@ -5117,7 +5117,7 @@ pub(crate) mod rules {
             let mut drop_cond = None;
             let many = self.conds.len() > 1;
             for (i, c) in self.conds.iter_mut().enumerate() {
-                row(ui, if i == 0 { tl!("When") } else { tl!("and") }, |ui| {
+                row(ui, if i == 0 { crate::tlc!("rule condition", "When") } else { tl!("and") }, |ui| {
                     egui::ComboBox::from_id_salt(("when", i)).width(190.0).selected_text(tl!(c.kind.label_as(on_server))).show_ui(ui, |ui| {
                         for kind in When::ALL {
                             if ui.selectable_label(kind == c.kind, tl!(kind.label_as(on_server))).clicked() {

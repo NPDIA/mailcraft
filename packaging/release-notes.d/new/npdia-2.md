@@ -1,0 +1,1 @@
+- Choose 한국어(미리보기) in File › Options. The restored Korean catalogue covers the desktop interface and the NPDIA features in this release. [Fork #2](https://github.com/NPDIA/mailcraft/issues/2)

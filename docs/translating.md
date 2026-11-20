@@ -4,7 +4,7 @@
 
 MailCraft's interface comes in English and, as preview languages, French, German, Spanish,
 Italian, Dutch, Romanian, Hungarian, Polish, Czech and Simplified Chinese. Preview translations may be marked for further review; the initial Simplified Chinese catalogue was reviewed by its contributor.
-Simplified Chinese is offered on desktop only until the browser build has a CJK font.
+The NPDIA desktop build also offers a Korean preview. Both Simplified Chinese and Korean use desktop system fonts for CJK characters.
 File › Options names each preview in its own words ("Français (aperçu)", "Deutsch (Vorschau)"). Reviewing
 one, or adding another, needs no Rust.
 
@@ -12,7 +12,7 @@ one, or adding another, needs no Rust.
 
 - `crates/i18n/po/messages.pot`: the template, every text the window and the engine show. It is
   generated; never edit it by hand.
-- `crates/i18n/po/<code>.po`: one catalogue per language (`fr.po`, `de.po`, `es.po`, `it.po`, `nl.po`, `ro.po`, `hu.po`, `pl.po`, `cs.po`, `zh_CN.po`), in
+- `crates/i18n/po/<code>.po`: one catalogue per language (`fr.po`, `de.po`, `es.po`, `it.po`, `nl.po`, `ro.po`, `hu.po`, `pl.po`, `cs.po`, `zh_CN.po`, `ko.po`), in
   the gettext format any `.po` editor opens. The catalogues are compiled into the program.
 
 `cargo xtask i18n` gathers the texts from the code, rewrites the template, merges it into every

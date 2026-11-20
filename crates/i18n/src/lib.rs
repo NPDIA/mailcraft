@@ -39,6 +39,8 @@ mod chinese_tests;
 #[cfg(test)]
 mod czech_tests;
 #[cfg(test)]
+mod korean_tests;
+#[cfg(test)]
 mod polish_tests;
 #[cfg(test)]
 mod said_tests;
@@ -73,6 +75,7 @@ pub enum Lang {
     Polish,
     Czech,
     ChineseSimplified,
+    Korean,
     /// Accented look-alikes of the English text, for finding text that skips translation. Set by
     /// command only; never offered.
     Pseudo,
@@ -80,7 +83,7 @@ pub enum Lang {
 
 impl Lang {
     /// Every language there is a name for (whether or not it has a catalogue yet).
-    pub const ALL: [Lang; 12] = [
+    pub const ALL: [Lang; 13] = [
         Lang::English,
         Lang::French,
         Lang::German,
@@ -92,6 +95,7 @@ impl Lang {
         Lang::Polish,
         Lang::Czech,
         Lang::ChineseSimplified,
+        Lang::Korean,
         Lang::Pseudo,
     ];
 
@@ -109,6 +113,7 @@ impl Lang {
             Lang::Polish => "pl",
             Lang::Czech => "cs",
             Lang::ChineseSimplified => "zh_CN",
+            Lang::Korean => "ko",
             Lang::Pseudo => "pseudo",
         }
     }
@@ -149,6 +154,7 @@ impl Lang {
             "hu" => Some(Lang::Hungarian),
             "pl" => Some(Lang::Polish),
             "cs" => Some(Lang::Czech),
+            "ko" => Some(Lang::Korean),
             _ => None,
         }
     }
@@ -167,6 +173,7 @@ impl Lang {
             Lang::Polish => "Polski",
             Lang::Czech => "Čeština",
             Lang::ChineseSimplified => "简体中文",
+            Lang::Korean => "한국어",
             Lang::Pseudo => "Pseudo",
         }
     }
@@ -185,6 +192,7 @@ impl Lang {
                 | Lang::Polish
                 | Lang::Czech
                 | Lang::ChineseSimplified
+                | Lang::Korean
         )
     }
 
@@ -205,7 +213,7 @@ impl Lang {
     /// A catalogue can be used for the interface when its glyphs are available on the target.
     /// The browser has no system CJK fallback font yet.
     fn supported_on(self, browser: bool) -> bool {
-        self.has_catalogue() && !(browser && self == Lang::ChineseSimplified)
+        self.has_catalogue() && !(browser && matches!(self, Lang::ChineseSimplified | Lang::Korean))
     }
 
     fn supported(self) -> bool {
@@ -484,6 +492,9 @@ mod tests {
         ];
         if !cfg!(target_arch = "wasm32") {
             expected.push("简体中文（预览）");
+        }
+        if !cfg!(target_arch = "wasm32") && Lang::Korean.has_catalogue() {
+            expected.push("한국어(미리보기)");
         }
         assert_eq!(names, expected);
         assert_eq!(Lang::from_pref("auto", Some("de_AT.UTF-8")), Lang::German);

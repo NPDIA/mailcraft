@@ -19996,7 +19996,7 @@ msgid "What's new and how to get it:"
 msgstr "新功能及获取方式："
 
 #. interface
-#: crates/ui-egui/src/forms.rs crates/ui-egui/src/reading/invitation.rs
+#: crates/ui-egui/src/reading/invitation.rs
 #, fuzzy
 msgid "When"
 msgstr "时间"
@@ -22082,6 +22082,13 @@ msgstr ""
 #, fuzzy
 msgid "replies can go to at most {n} addresses"
 msgstr "回复最多可发送到 {n} 个地址"
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+#, fuzzy
+msgctxt "rule condition"
+msgid "When"
+msgstr "时间"
 
 #. name
 #: crates/engine/src/agent.rs

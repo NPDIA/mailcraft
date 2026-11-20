@@ -163,6 +163,18 @@ fn window_commands_validate() {
     a.services.system_locale = Some("cs-CZ".into());
     assert_eq!(a.execute("ui.language", json!({"language": "auto"})).unwrap()["inForce"], "cs");
     assert_eq!(a.session.interface_language, crate::i18n::Lang::Czech);
+    // Korean was added for desktop. Its catalogue must be bundled for either choice to use it.
+    a.services.system_locale = Some("ko-KR".into());
+    let explicit_korean = a.execute("ui.language", json!({"language": "KO_kr.UTF-8"}));
+    let automatic = a.execute("ui.language", json!({"language": "auto"})).unwrap();
+    if crate::i18n::Lang::available().contains(&crate::i18n::Lang::Korean) {
+        assert_eq!(explicit_korean.unwrap(), json!({"language": "ko", "inForce": "ko"}));
+        assert_eq!(automatic["inForce"], "ko");
+        assert_eq!(a.session.interface_language, crate::i18n::Lang::Korean);
+    } else {
+        assert!(explicit_korean.is_err());
+        assert_eq!(automatic["inForce"], "en");
+    }
     assert_eq!(a.execute("ui.language", json!({"language": "en"})).unwrap()["inForce"], "en");
     assert_eq!(a.execute("ui.interfaceSize", json!({"value": 9000})).unwrap()["value"], 200);
     assert!(a.execute("ui.interfaceSize", json!({"value": "big"})).is_err());

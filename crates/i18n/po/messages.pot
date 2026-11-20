@@ -16629,7 +16629,7 @@ msgid "What's new and how to get it:"
 msgstr ""
 
 #. interface
-#: crates/ui-egui/src/forms.rs crates/ui-egui/src/reading/invitation.rs
+#: crates/ui-egui/src/reading/invitation.rs
 msgid "When"
 msgstr ""
 
@@ -18376,6 +18376,12 @@ msgstr ""
 #. what a command says
 #: crates/engine/src/cmd/compose.rs
 msgid "replies can go to at most {n} addresses"
+msgstr ""
+
+#. interface
+#: crates/ui-egui/src/forms.rs
+msgctxt "rule condition"
+msgid "When"
 msgstr ""
 
 #. name
